@@ -1,0 +1,74 @@
+// file: backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id_user      Int      @id @default(autoincrement())
+  nama_lengkap String
+  username     String   @unique
+  no_whatsapp  String
+  password     String
+  role         String   @default("CUSTOMER")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  orders       Order[]
+}
+
+model Product {
+  id_product   Int            @id @default(autoincrement())
+  nama_produk  String
+  deskripsi    String         @db.Text
+  harga_satuan Int
+  stok         Int
+  kategori     String
+  gambar_url   String?
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+  discounts    BulkDiscount[]
+  order_details OrderDetail[]
+}
+
+model BulkDiscount {
+  id_discount  Int     @id @default(autoincrement())
+  id_product   Int
+  product      Product @relation(fields: [id_product], references: [id_product], onDelete: Cascade)
+  min_qty      Int
+  harga_grosir Int
+}
+
+model Order {
+  id_order         Int           @id @default(autoincrement())
+  id_user          Int
+  user             User          @relation(fields: [id_user], references: [id_user])
+  kode_pesanan     String        @unique
+  total_pembayaran Int
+  status_pesanan   String        @default("PENDING")
+  tanggal_pesanan  DateTime      @default(now())
+  details          OrderDetail[]
+}
+
+model OrderDetail {
+  id_detail            Int     @id @default(autoincrement())
+  id_order             Int
+  order                Order   @relation(fields: [id_order], references: [id_order], onDelete: Cascade)
+  id_product           Int
+  product              Product @relation(fields: [id_product], references: [id_product])
+  kuantitas            Int
+  harga_satuan_terekam Int
+  subtotal             Int
+}
+
+model ChatbotLog {
+  id_log          Int      @id @default(autoincrement())
+  identitas_user  String
+  pertanyaan_user String   @db.Text
+  jawaban_bot     String   @db.Text
+  tanggal         DateTime @default(now())
+}
