@@ -1,27 +1,34 @@
-"use client";
-import { useEffect, useState } from "react";
+import Navbar from "@/components/Navbar";
+import HeroSection from "@/components/HeroSection";
+import BestSellingSection from "@/components/BestSellingSection";
+import ProductGridSection from "@/components/ProductGridSection";
+import Footer from "@/components/Footer";
+import { fetchProducts, fetchBestSelling, type Product } from "@/lib/api";
 
-export default function Home() {
-  const [pesanBackend, setPesanBackend] = useState("Sedang mencari sinyal backend...");
+export default async function Home() {
+  let bestSelling: Product[] = [];
+  let allProducts: Product[] = [];
 
-  useEffect(() => {
-    // Ini perintah untuk mengetuk pintu Express.js milikmu di Port 5000
-    fetch("http://localhost:5000")
-      .then((respons) => respons.json())
-      .then((data) => setPesanBackend(data.message))
-      .catch((error) => setPesanBackend("Waduh, backend-nya belum nyambung nih!"));
-  }, []);
+  try {
+    [bestSelling, allProducts] = await Promise.all([
+      fetchBestSelling(),
+      fetchProducts(),
+    ]);
+  } catch {
+    // Backend belum menyala — tampilkan halaman kosong dengan graceful fallback
+  }
+
+  const activeProducts = allProducts.filter((p) => p.nama_produk.trim() !== "");
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 font-sans">
-      <h1 className="text-4xl font-extrabold text-blue-900 mb-4">
-        Website Top Production 🎒
-      </h1>
-      
-      <div className="p-6 bg-white rounded-xl shadow-md border-t-4 border-green-500">
-        <h2 className="text-gray-500 text-sm font-semibold mb-2">PESAN DARI SERVER BACKEND:</h2>
-        <p className="text-xl text-green-700 font-medium">{pesanBackend}</p>
-      </div>
-    </div>
+    <>
+      <Navbar />
+      <main className="flex-1">
+        <HeroSection />
+        <BestSellingSection products={bestSelling} />
+        <ProductGridSection products={activeProducts} />
+      </main>
+      <Footer />
+    </>
   );
 }
