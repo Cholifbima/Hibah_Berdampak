@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Star } from "lucide-react";
 import { formatRupiah, type Product } from "@/lib/api";
 
@@ -8,6 +9,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, featured = false }: ProductCardProps) {
   const hasDiscount = product.discounts.length > 0;
+  const hasImage = !!product.gambar_url;
 
   return (
     <div
@@ -15,20 +17,32 @@ export default function ProductCard({ product, featured = false }: ProductCardPr
         featured ? "sm:flex-row" : ""
       }`}
     >
-      {/* Gambar placeholder */}
+      {/* Gambar produk */}
       <div
-        className={`relative flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200 ${
-          featured ? "sm:w-56 h-48 sm:h-auto" : "h-48"
+        className={`relative bg-gradient-to-br from-blue-50 to-blue-100 ${
+          featured ? "sm:w-56 h-52 sm:h-auto" : "h-52"
         }`}
       >
-        <div className="text-center p-4">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-300/50">
-            <span className="text-lg">🛍️</span>
+        {hasImage ? (
+          <Image
+            src={product.gambar_url!}
+            alt={product.nama_produk}
+            fill
+            sizes={featured ? "(max-width: 640px) 100vw, 224px" : "(max-width: 640px) 50vw, 25vw"}
+            className="object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-4">
+            <div className="text-center">
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-200/60">
+                <span className="text-lg">🛍️</span>
+              </div>
+              <p className="text-xs font-medium text-blue-600 line-clamp-2">
+                {product.nama_produk}
+              </p>
+            </div>
           </div>
-          <p className="text-xs font-medium text-blue-700 line-clamp-2 leading-tight">
-            {product.nama_produk}
-          </p>
-        </div>
+        )}
 
         {product.stok === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
