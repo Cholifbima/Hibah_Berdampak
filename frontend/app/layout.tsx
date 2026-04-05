@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Roboto_Slab } from "next/font/google";
+import { CartProvider } from "@/lib/cart-context";
+import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["200", "300", "400", "500", "600", "700", "800", "900"],
+});
+
+const robotoSlab = Roboto_Slab({
+  variable: "--font-roboto-slab",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Top Production — Konveksi Tas & Produk Custom Berkualitas",
+  title: "TopAssist — Konveksi Tas & Produk Custom Berkualitas",
   description:
-    "Temukan produk konveksi berkualitas dari Top Production. Tas custom, perlengkapan olahraga, dan banyak lagi dengan harga terjangkau.",
+    "Temukan berbagai produk berkualitas untuk keperluan hobi maupun fashion anda. Produk konveksi dari Top Production dengan harga terjangkau.",
 };
 
 export default function RootLayout({
@@ -20,9 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${poppins.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col font-[family-name:var(--font-poppins)]">
-        {children}
+    <html lang="id" className={`${poppins.variable} ${robotoSlab.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col font-[family-name:var(--font-poppins)] antialiased bg-[#f3f9fc]">
+        <AuthProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

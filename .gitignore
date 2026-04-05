@@ -1,6 +1,8 @@
 node_modules
 .env
 .env.*
+# Next.js & tooling local secrets
+.env.local
 .next/
 /generated/
 *.pem

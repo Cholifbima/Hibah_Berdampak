@@ -1,93 +1,103 @@
+import Link from "next/link";
 import Image from "next/image";
 import { Star } from "lucide-react";
 import { formatRupiah, type Product } from "@/lib/api";
 
 interface ProductCardProps {
   product: Product;
-  featured?: boolean;
 }
 
-export default function ProductCard({ product, featured = false }: ProductCardProps) {
+export default function ProductCard({ product }: ProductCardProps) {
   const hasDiscount = product.discounts.length > 0;
   const hasImage = !!product.gambar_url;
 
+  const discountPercent = hasDiscount
+    ? Math.round(((product.harga_satuan - product.discounts[0].harga_grosir) / product.harga_satuan) * 100)
+    : 0;
+
   return (
-    <div
-      className={`group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 ${
-        featured ? "sm:flex-row" : ""
-      }`}
-    >
+    <Link href={`/toko/${product.id_product}`} className="relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow">
+      {/* Badge Best Seller */}
+      <div className="absolute top-3 left-3 z-10">
+        <div className="rounded-xl bg-gradient-to-r from-[#dca951] to-[#efd286] px-3 py-1.5 sm:px-4 sm:py-2">
+          <span className="text-[10px] font-semibold text-[#382317] sm:text-xs">
+            BEST SELLER
+          </span>
+        </div>
+      </div>
+
       {/* Gambar produk */}
-      <div
-        className={`relative bg-gradient-to-br from-blue-50 to-blue-100 ${
-          featured ? "sm:w-56 h-52 sm:h-auto" : "h-52"
-        }`}
-      >
+      <div className="relative aspect-square bg-gradient-to-b from-white to-[#f0f6ff] p-4">
         {hasImage ? (
           <Image
             src={product.gambar_url!}
             alt={product.nama_produk}
             fill
-            sizes={featured ? "(max-width: 640px) 100vw, 224px" : "(max-width: 640px) 50vw, 25vw"}
-            className="object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 280px"
+            className="object-contain p-2"
           />
         ) : (
-          <div className="flex h-full items-center justify-center p-4">
-            <div className="text-center">
-              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-200/60">
-                <span className="text-lg">🛍️</span>
-              </div>
-              <p className="text-xs font-medium text-blue-600 line-clamp-2">
-                {product.nama_produk}
-              </p>
-            </div>
+          <div className="flex h-full items-center justify-center">
+            <span className="text-3xl">🛍️</span>
           </div>
         )}
 
         {product.stok === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-            <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+            <span className="rounded-full bg-red-500 px-3 py-1 text-[10px] font-bold text-white sm:text-xs">
               Stok Habis
             </span>
           </div>
         )}
-
-        {hasDiscount && product.stok > 0 && (
-          <div className="absolute top-2 left-2">
-            <span className="rounded-full bg-yellow-400 px-2.5 py-0.5 text-[10px] font-bold text-yellow-900 shadow-sm">
-              GROSIR
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Info */}
-      <div className={`flex flex-1 flex-col p-4 ${featured ? "justify-center" : ""}`}>
-        <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug group-hover:text-blue-700 transition-colors">
+      {/* Info produk */}
+      <div className="flex flex-1 flex-col px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3">
+        {/* Nama */}
+        <h3 className="text-center text-xs font-semibold leading-snug text-[#373737] line-clamp-2 sm:text-sm">
           {product.nama_produk}
         </h3>
 
-        <p className="mt-2 text-base font-bold text-blue-700">
-          {formatRupiah(product.harga_satuan)}
-        </p>
-
+        {/* Harga coret (jika ada diskon) */}
         {hasDiscount && (
-          <p className="mt-0.5 text-[11px] text-gray-400">
-            Grosir mulai {formatRupiah(product.discounts[0].harga_grosir)}
+          <p className="mt-1.5 text-xs text-gray-400 line-through sm:text-sm">
+            {formatRupiah(product.harga_satuan)}
           </p>
         )}
 
-        <div className="mt-2 flex items-center gap-2">
-          <div className="flex items-center gap-0.5">
-            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-            <span className="text-xs text-gray-500">5.0</span>
+        {/* Harga + Badge diskon */}
+        <div className="mt-1 flex items-center gap-2">
+          <p className="text-sm font-extrabold text-[#163f73] sm:text-lg">
+            {hasDiscount
+              ? formatRupiah(product.discounts[0].harga_grosir)
+              : formatRupiah(product.harga_satuan)}
+          </p>
+          {hasDiscount && discountPercent > 0 && (
+            <span className="rounded-lg bg-[#c3dcff] px-2 py-0.5 text-[10px] font-extrabold text-[#163f73] sm:text-xs">
+              -{discountPercent}%
+            </span>
+          )}
+        </div>
+
+        {/* Info grosir */}
+        {hasDiscount && (
+          <div className="mt-2 rounded-xl bg-[#163f73] px-3 py-1.5">
+            <p className="text-[9px] font-extrabold text-white sm:text-[11px]">
+              Beli {product.discounts[0].min_qty} : {formatRupiah(product.discounts[0].harga_grosir)} / pcs
+            </p>
           </div>
-          <span className="text-xs text-gray-300">|</span>
-          <span className="text-xs text-gray-500">
-            Stok: {product.stok > 0 ? product.stok : "Habis"}
+        )}
+
+        {/* Rating & Terjual */}
+        <div className="mt-2 flex items-center gap-1.5 text-[#373737]">
+          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+          <span className="text-[11px] font-semibold sm:text-xs">5.0</span>
+          <span className="mx-0.5 text-gray-300">|</span>
+          <span className="text-[11px] sm:text-xs">
+            {product.stok > 0 ? `${product.stok} Stok` : "Habis"}
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

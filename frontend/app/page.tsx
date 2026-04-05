@@ -1,24 +1,18 @@
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import BestSellingSection from "@/components/BestSellingSection";
-import ProductGridSection from "@/components/ProductGridSection";
+import AIConsultantSection from "@/components/AIConsultantSection";
 import Footer from "@/components/Footer";
-import { fetchProducts, fetchBestSelling, type Product } from "@/lib/api";
+import { fetchBestSelling, type Product } from "@/lib/api";
 
 export default async function Home() {
   let bestSelling: Product[] = [];
-  let allProducts: Product[] = [];
 
   try {
-    [bestSelling, allProducts] = await Promise.all([
-      fetchBestSelling(),
-      fetchProducts(),
-    ]);
+    bestSelling = await fetchBestSelling();
   } catch {
-    // Backend belum menyala — tampilkan halaman kosong dengan graceful fallback
+    // Backend belum menyala — tampilkan halaman tanpa data
   }
-
-  const activeProducts = allProducts.filter((p) => p.nama_produk.trim() !== "");
 
   return (
     <>
@@ -26,7 +20,7 @@ export default async function Home() {
       <main className="flex-1">
         <HeroSection />
         <BestSellingSection products={bestSelling} />
-        <ProductGridSection products={activeProducts} />
+        <AIConsultantSection />
       </main>
       <Footer />
     </>

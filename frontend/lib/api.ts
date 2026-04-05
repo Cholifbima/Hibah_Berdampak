@@ -36,6 +36,22 @@ export async function fetchBestSelling(): Promise<Product[]> {
   return res.json();
 }
 
+export async function fetchProductById(id: number): Promise<Product> {
+  const res = await fetch(`${API_BASE}/api/products/${id}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Produk tidak ditemukan");
+  return res.json();
+}
+
+export async function fetchCategories(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/products/categories`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Gagal mengambil kategori");
+  return res.json();
+}
+
 export function formatRupiah(num: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

@@ -13,8 +13,10 @@ model User {
   id_user      Int      @id @default(autoincrement())
   nama_lengkap String
   username     String   @unique
-  no_whatsapp  String
-  password     String
+  email        String?  @unique
+  no_whatsapp  String   @default("")
+  password     String   @default("")
+  google_id    String?  @unique
   role         String   @default("CUSTOMER")
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
@@ -50,7 +52,14 @@ model Order {
   kode_pesanan     String        @unique
   total_pembayaran Int
   status_pesanan   String        @default("PENDING")
+  nama_penerima    String        @default("")
+  alamat_pengiriman String       @db.Text
+  no_telepon       String        @default("")
+  catatan          String        @db.Text
+  jenis_pengiriman String?
+  nomor_resi       String?
   tanggal_pesanan  DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
   details          OrderDetail[]
 }
 
