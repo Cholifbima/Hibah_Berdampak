@@ -41,10 +41,8 @@ cd backend
 
 Buat file **`backend/.env`** (jangan di-commit). Isi minimal:
 
-```env
-DATABASE_URL="mysql://USER:PASSWORD@HOST:PORT/NAMA_DB?sslaccept=strict"
-JWT_SECRET=string_rahasia_bebas
-PORT=5000
+```.env
+DATABASE_URL="cek wa grup"
 ```
 
 Lalu sinkronkan skema ke database dan generate client Prisma:
@@ -52,12 +50,6 @@ Lalu sinkronkan skema ke database dan generate client Prisma:
 ```bash
 npx prisma generate
 npx prisma db push
-```
-
-Kalau perlu data awal produk:
-
-```bash
-npx prisma db seed
 ```
 
 Jalankan API:
@@ -80,12 +72,9 @@ cd frontend
 
 Buat file **`frontend/.env.local`**:
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=client_id_google_opsional
+```.env.local
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=cek wa grup
 ```
-
-`NEXT_PUBLIC_GOOGLE_CLIENT_ID` boleh kosong dulu kalau fitur Google login belum dipakai.
 
 Jalankan:
 
@@ -94,25 +83,6 @@ npm run dev
 ```
 
 Buka **http://localhost:3000**.
-
-## Buka dari HP (WiFi sama)
-
-Di PC, cari IP WiFi (mis. `192.168.18.5`). Jalankan frontend dengan host semua interface:
-
-```bash
-cd frontend
-npm run dev -- -H 0.0.0.0
-```
-
-Di **`frontend/.env.local`**, untuk tes dari HP ganti API ke IP PC (bukan `localhost`):
-
-```env
-NEXT_PUBLIC_API_URL=http://192.168.18.5:5000
-```
-
-(Sesuaikan IP dan pastikan firewall mengizinkan port 3000 dan 5000.)
-
-**Login Google di HP:** di [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → OAuth 2.0 Client ID → **Authorized JavaScript origins** harus berisi origin yang **persis** sama dengan alamat yang dibuka di browser, mis. `http://192.168.18.5:3000`. Kalau cuma ada `http://localhost:3000`, tombol Google di HP akan gagal atau hilang. IP WiFi bisa berubah; kalau berubah, update origin di Google Console atau pakai IP statis di router.
 
 ## Ringkasannya
 
