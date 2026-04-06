@@ -16,7 +16,7 @@ cd Hibah_Berdampak
 Kalau sudah pernah clone, cukup update:
 
 ```bash
-git pull origin ui-design
+git pull origin master
 ```
 
 (Branch utama development kami biasanya `ui-design`; kalau beda, ganti nama branch-nya.)
