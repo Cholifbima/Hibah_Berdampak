@@ -2,13 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { formatRupiah } from "@/lib/api";
+import { formatRupiah, getApiBase } from "@/lib/api";
 import { Package, Clock, Truck, CheckCircle, Search, ChevronRight, ShoppingBag, LogIn, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 interface OrderDetail {
   id_detail: number;
@@ -228,7 +226,7 @@ export default function PesananPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/orders/me`, {
+      const res = await fetch(`${getApiBase()}/api/orders/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setOrders(await res.json());

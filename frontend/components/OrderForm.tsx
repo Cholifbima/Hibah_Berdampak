@@ -3,13 +3,12 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCart, getEffectivePrice } from "@/lib/cart-context";
-import { formatRupiah } from "@/lib/api";
+import { formatRupiah, getApiBase } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Send, ShoppingBag, Eye, EyeOff } from "lucide-react";
+import { Send, ShoppingBag, Eye, EyeOff, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const WA_NUMBER = "62895386224772";
 const ORDER_COUNTER_KEY = "topassist_order_counter";
 
@@ -21,8 +20,8 @@ function getNextOrderNumber(): string {
 }
 
 export default function OrderForm() {
-  const { items, clearCart } = useCart();
-  const { user, token } = useAuth();
+  const { items, clearCart, cartLoading } = useCart();
+  const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [nama, setNama] = useState("");
@@ -55,45 +54,78 @@ export default function OrderForm() {
     );
   }
 
+  if (authLoading || (user && cartLoading)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="h-10 w-10 animate-spin text-[#163f73]" />
+        <p className="mt-3 text-sm text-gray-500">Memuat keranjang…</p>
+      </div>
+    );
+  }
+
+  if (!user || !token) {
+    return (
+      <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+        <h2 className="text-lg font-bold text-[#163f73]">Login dulu</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          Untuk mengisi form pemesanan dan menyimpan pesanan ke akun, silakan login. Keranjang tamu tetap ada di perangkat ini sampai Anda login — isinya akan digabung ke akun Anda.
+        </p>
+        <Link
+          href="/login?redirect=/pemesanan"
+          className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-[#163f73] py-3.5 text-sm font-bold text-white hover:bg-[#0f2d55] transition-colors sm:w-auto sm:px-10"
+        >
+          Login untuk lanjut
+        </Link>
+        <Link
+          href="/keranjang"
+          className="mt-3 block text-center text-sm font-semibold text-[#163f73] underline-offset-2 hover:underline"
+        >
+          Kembali ke keranjang
+        </Link>
+      </div>
+    );
+  }
+
   const totalAfterDiscount = items.reduce(
     (sum, item) => sum + getEffectivePrice(item) * item.qty,
     0
   );
 
   function buildMessage(orderNum: string): string {
+    const rule = "--------------------------------";
     const lines: string[] = [];
-    lines.push(`🛒 *PESANAN BARU — TopAssist*`);
-    lines.push(`📋 *No. Order: ${orderNum}*`);
-    lines.push("━━━━━━━━━━━━━━━━━━━━");
+    lines.push(`*PESANAN BARU - TopAssist*`);
+    lines.push(`*No. Order: ${orderNum}*`);
+    lines.push(rule);
     lines.push("");
-    lines.push(`👤 *Nama:* ${nama}`);
-    lines.push(`📱 *Telepon:* ${telepon}`);
-    lines.push(`📍 *Alamat:* ${alamat}`);
-    if (catatan.trim()) lines.push(`📝 *Catatan:* ${catatan}`);
+    lines.push(`*Nama:* ${nama}`);
+    lines.push(`*Telepon:* ${telepon}`);
+    lines.push(`*Alamat:* ${alamat}`);
+    if (catatan.trim()) lines.push(`*Catatan:* ${catatan}`);
     lines.push("");
-    lines.push("━━━━━━━━━━━━━━━━━━━━");
-    lines.push("📦 *Detail Pesanan:*");
+    lines.push(rule);
+    lines.push("*Detail Pesanan:*");
     lines.push("");
 
     items.forEach((item, idx) => {
       const unitPrice = getEffectivePrice(item);
       const isDiscounted = unitPrice < item.harga_satuan;
       lines.push(`${idx + 1}. *${item.nama_produk}*`);
-      lines.push(`   ${item.qty} pcs × ${formatRupiah(unitPrice)}`);
+      lines.push(`   ${item.qty} pcs x ${formatRupiah(unitPrice)}`);
       if (isDiscounted) {
         const matched = item.discounts
           .filter((d) => item.qty >= d.min_qty)
           .sort((a, b) => b.min_qty - a.min_qty)[0];
-        lines.push(`   💰 Harga grosir (min ${matched.min_qty} pcs)`);
+        lines.push(`   [Grosir] min ${matched.min_qty} pcs`);
       }
       lines.push(`   Subtotal: ${formatRupiah(unitPrice * item.qty)}`);
       lines.push("");
     });
 
-    lines.push("━━━━━━━━━━━━━━━━━━━━");
-    lines.push(`💵 *TOTAL: ${formatRupiah(totalAfterDiscount)}*`);
+    lines.push(rule);
+    lines.push(`*TOTAL: ${formatRupiah(totalAfterDiscount)}*`);
     lines.push("");
-    lines.push("Mohon konfirmasi pesanan ini. Terima kasih! 🙏");
+    lines.push("Mohon konfirmasi pesanan ini. Terima kasih!");
 
     return lines.join("\n");
   }
@@ -102,30 +134,30 @@ export default function OrderForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid || !user || !token) return;
 
     const orderNum = getNextOrderNumber();
 
-    if (user && token) {
-      try {
-        await fetch(`${API_BASE}/api/orders`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            kode_pesanan: orderNum,
-            nama_penerima: nama,
-            alamat_pengiriman: alamat,
-            no_telepon: telepon,
-            catatan,
-            items: items.map((item) => ({
-              id_product: item.id_product,
-              kuantitas: item.qty,
-              harga_satuan_terekam: getEffectivePrice(item),
-              subtotal: getEffectivePrice(item) * item.qty,
-            })),
-          }),
-        });
-      } catch { /* WA tetap dikirim meski DB gagal */ }
+    try {
+      await fetch(`${getApiBase()}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          kode_pesanan: orderNum,
+          nama_penerima: nama,
+          alamat_pengiriman: alamat,
+          no_telepon: telepon,
+          catatan,
+          items: items.map((item) => ({
+            id_product: item.id_product,
+            kuantitas: item.qty,
+            harga_satuan_terekam: getEffectivePrice(item),
+            subtotal: getEffectivePrice(item) * item.qty,
+          })),
+        }),
+      });
+    } catch {
+      /* WA tetap dikirim meski DB gagal */
     }
 
     const msg = encodeURIComponent(buildMessage(orderNum));

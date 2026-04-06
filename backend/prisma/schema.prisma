@@ -21,6 +21,7 @@ model User {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
   orders       Order[]
+  cart_items   CartItem[]
 }
 
 model Product {
@@ -35,6 +36,19 @@ model Product {
   updated_at   DateTime       @updatedAt
   discounts    BulkDiscount[]
   order_details OrderDetail[]
+  cart_items    CartItem[]
+}
+
+model CartItem {
+  id_cart_item Int     @id @default(autoincrement())
+  id_user      Int
+  user         User    @relation(fields: [id_user], references: [id_user], onDelete: Cascade)
+  id_product   Int
+  product      Product @relation(fields: [id_product], references: [id_product], onDelete: Cascade)
+  qty          Int
+  updated_at   DateTime @updatedAt
+
+  @@unique([id_user, id_product])
 }
 
 model BulkDiscount {

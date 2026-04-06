@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -12,9 +12,17 @@ import AuthUnderlineField from "@/components/auth/AuthUnderlineField";
 const BG =
   "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(28, 84, 179) 42%, rgb(22, 58, 120) 100%)";
 
-export default function SignupPage() {
+function safeRedirect(raw: string | null): string {
+  if (!raw || !raw.startsWith("/")) return "/";
+  if (raw.startsWith("//")) return "/";
+  return raw;
+}
+
+function SignupForm() {
   const { register } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const afterLogin = safeRedirect(searchParams.get("redirect"));
 
   const [namaLengkap, setNamaLengkap] = useState("");
   const [username, setUsername] = useState("");
@@ -48,7 +56,7 @@ export default function SignupPage() {
         no_whatsapp: noWhatsapp || undefined,
         password,
       });
-      router.push("/");
+      router.push(afterLogin);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal membuat akun");
     } finally {
@@ -191,12 +199,12 @@ export default function SignupPage() {
           <hr className="flex-1 border-white/25" />
         </div>
 
-        <GoogleLoginButton containerId="google-signin-signup" />
+        <GoogleLoginButton containerId="google-signin-signup" redirectAfterLogin={afterLogin} />
 
         <p className="mt-8 text-center text-base text-white/90">
           Sudah punya akun?{" "}
           <Link
-            href="/login"
+            href={afterLogin !== "/" ? `/login?redirect=${encodeURIComponent(afterLogin)}` : "/login"}
             className="font-black italic text-white underline decoration-white/50 underline-offset-4 hover:decoration-white"
           >
             Login
@@ -204,5 +212,19 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center" style={{ background: BG }}>
+          <p className="text-sm text-white/80">Memuat…</p>
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   );
 }

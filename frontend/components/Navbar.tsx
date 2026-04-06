@@ -20,7 +20,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="absolute top-0 left-0 right-0 z-50">
+    <nav className="fixed top-0 left-0 right-0 z-[9999] pointer-events-auto border-b border-white/10 bg-[#163f73]/93 shadow-[0_4px_20px_rgba(0,0,0,0.12)] backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between sm:h-20">
           {/* Logo */}
@@ -88,7 +88,10 @@ export default function Navbar() {
             )}
 
             <button
-              className="lg:hidden rounded-lg p-1.5 text-white hover:bg-white/10"
+              type="button"
+              aria-expanded={open}
+              aria-label={open ? "Tutup menu" : "Buka menu"}
+              className="relative z-[10000] flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-1.5 text-white hover:bg-white/10 touch-manipulation lg:hidden"
               onClick={() => setOpen(!open)}
             >
               {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -97,9 +100,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — fixed supaya tidak tertimpa layer halaman di browser HP */}
       {open && (
-        <div className="lg:hidden bg-[#1a4b9e]/95 backdrop-blur-md border-t border-white/10 px-4 pb-5 pt-2">
+        <div className="fixed left-0 right-0 top-16 z-[9998] max-h-[min(70dvh,calc(100dvh-4rem))] overflow-y-auto border-t border-white/10 bg-[#1a4b9e]/98 px-4 pb-5 pt-2 backdrop-blur-md lg:hidden">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

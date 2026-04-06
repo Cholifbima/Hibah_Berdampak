@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { formatRupiah } from "@/lib/api";
+import { formatRupiah, getApiBase } from "@/lib/api";
 import {
   ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, Phone,
   User, FileText, Loader2, Edit3, Save, X,
@@ -11,8 +11,6 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 interface OrderDetail {
   id_detail: number;
@@ -104,7 +102,7 @@ export default function OrderDetailPage() {
     if (!token || !params.id) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${params.id}`, {
+      const res = await fetch(`${getApiBase()}/api/orders/${params.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -130,7 +128,7 @@ export default function OrderDetailPage() {
     if (!token || !order) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${order.id_order}/status`, {
+      const res = await fetch(`${getApiBase()}/api/orders/${order.id_order}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ nomor_resi: resiInput, jenis_pengiriman: courierInput || null }),

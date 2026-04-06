@@ -82,17 +82,41 @@ app.post('/api/auth/google', async (req, res) => {
     const { google_id, email, name } = req.body;
     if (!google_id || !email) return res.status(400).json({ error: 'Data Google tidak lengkap' });
 
-    let user = await prisma.user.findFirst({
-      where: { OR: [{ google_id }, { email }] },
-    });
+    const emailNorm = String(email).trim().toLowerCase();
+    const emailRaw = String(email).trim();
+
+    let user = await prisma.user.findUnique({ where: { google_id } });
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: emailNorm },
+            { email: emailRaw },
+          ],
+        },
+      });
+    }
 
     if (!user) {
-      const username = email.split('@')[0] + '_' + Date.now().toString(36);
+      const username = emailNorm.split('@')[0] + '_' + Date.now().toString(36);
       user = await prisma.user.create({
-        data: { nama_lengkap: name || email, username, email, google_id, password: '', no_whatsapp: '' },
+        data: {
+          nama_lengkap: name || emailNorm,
+          username,
+          email: emailNorm,
+          google_id,
+          password: '',
+          no_whatsapp: '',
+        },
       });
-    } else if (!user.google_id) {
-      user = await prisma.user.update({ where: { id_user: user.id_user }, data: { google_id } });
+    } else {
+      const patch = {};
+      if (!user.google_id) patch.google_id = google_id;
+      if (user.email && user.email !== emailNorm) patch.email = emailNorm;
+      else if (!user.email) patch.email = emailNorm;
+      if (Object.keys(patch).length) {
+        user = await prisma.user.update({ where: { id_user: user.id_user }, data: patch });
+      }
     }
 
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
@@ -100,6 +124,63 @@ app.post('/api/auth/google', async (req, res) => {
   } catch (error) {
     console.error('Google auth error:', error);
     res.status(500).json({ error: 'Gagal login dengan Google' });
+  }
+});
+
+function mapCartRows(rows) {
+  return rows.map((r) => ({
+    id_product: r.product.id_product,
+    nama_produk: r.product.nama_produk,
+    harga_satuan: r.product.harga_satuan,
+    gambar_url: r.product.gambar_url,
+    qty: r.qty,
+    discounts: r.product.discounts,
+  }));
+}
+
+app.get('/api/cart', authMiddleware, async (req, res) => {
+  try {
+    const rows = await prisma.cartItem.findMany({
+      where: { id_user: req.userId },
+      include: { product: { include: { discounts: true } } },
+    });
+    res.json(mapCartRows(rows));
+  } catch (error) {
+    console.error('Get cart error:', error);
+    res.status(500).json({ error: 'Gagal memuat keranjang' });
+  }
+});
+
+app.put('/api/cart', authMiddleware, async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items harus array' });
+    const valid = items.filter((i) => i.id_product && i.qty > 0);
+    if (valid.length) {
+      const ids = [...new Set(valid.map((i) => i.id_product))];
+      const products = await prisma.product.findMany({ where: { id_product: { in: ids } } });
+      if (products.length !== ids.length) return res.status(400).json({ error: 'Produk tidak valid' });
+    }
+    await prisma.$transaction(async (tx) => {
+      await tx.cartItem.deleteMany({ where: { id_user: req.userId } });
+      if (valid.length) {
+        await tx.cartItem.createMany({
+          data: valid.map((i) => ({
+            id_user: req.userId,
+            id_product: i.id_product,
+            qty: i.qty,
+          })),
+        });
+      }
+    });
+    const rows = await prisma.cartItem.findMany({
+      where: { id_user: req.userId },
+      include: { product: { include: { discounts: true } } },
+    });
+    res.json(mapCartRows(rows));
+  } catch (error) {
+    console.error('Put cart error:', error);
+    res.status(500).json({ error: 'Gagal menyimpan keranjang' });
   }
 });
 

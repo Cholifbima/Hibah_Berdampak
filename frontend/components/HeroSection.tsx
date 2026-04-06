@@ -3,14 +3,14 @@ import Image from "next/image";
 export default function HeroSection() {
   return (
     <section
-      className="relative overflow-hidden pt-20 pb-12 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-28"
+      className="relative z-0 overflow-hidden pt-20 pb-12 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-28 pointer-events-none"
       style={{
         background:
           "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(29, 94, 201) 11%, rgb(28, 84, 179) 34%, rgb(26, 75, 158) 95%, rgb(24, 65, 136) 100%)",
       }}
     >
       {/* Dekorasi awan */}
-      <div className="pointer-events-none absolute -top-4 -right-12 w-40 opacity-70 sm:w-56 lg:w-72 lg:right-4 lg:top-8">
+      <div className="pointer-events-none absolute top-0 -right-12 w-40 opacity-70 sm:w-56 lg:w-72 lg:right-4 lg:top-8">
         <Image
           src="/assets/decorations/Decoration/awan_putih_nobg-1.png"
           alt=""
@@ -40,7 +40,7 @@ export default function HeroSection() {
         />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-6">
+      <div className="pointer-events-auto relative mx-auto max-w-7xl px-5 sm:px-6">
         <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
           {/* Teks konten */}
           <div className="text-center lg:text-left">

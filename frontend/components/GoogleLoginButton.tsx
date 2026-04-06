@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -20,11 +21,18 @@ function decodeJwt(token: string) {
 
 interface GoogleLoginButtonProps {
   containerId?: string;
+  /** Path setelah login sukses, mis. /pemesanan */
+  redirectAfterLogin?: string;
 }
 
-export default function GoogleLoginButton({ containerId = "google-signin-btn" }: GoogleLoginButtonProps) {
+export default function GoogleLoginButton({
+  containerId = "google-signin-btn",
+  redirectAfterLogin = "/",
+}: GoogleLoginButtonProps) {
   const { loginWithGoogle } = useAuth();
+  const router = useRouter();
   const callbackRef = useRef<(r: GoogleCredentialResponse) => void>(() => {});
+  const [scriptError, setScriptError] = useState(false);
 
   const handleCredentialResponse = useCallback(
     async (response: GoogleCredentialResponse) => {
@@ -35,12 +43,15 @@ export default function GoogleLoginButton({ containerId = "google-signin-btn" }:
           email: decoded.email,
           name: decoded.name ?? decoded.email,
         });
-        window.location.href = "/";
+        const path = redirectAfterLogin.startsWith("/") ? redirectAfterLogin : "/";
+        setTimeout(() => {
+          router.push(path);
+        }, 0);
       } catch (err) {
         console.error("Google login failed:", err);
       }
     },
-    [loginWithGoogle]
+    [loginWithGoogle, router, redirectAfterLogin]
   );
 
   callbackRef.current = handleCredentialResponse;
@@ -51,13 +62,15 @@ export default function GoogleLoginButton({ containerId = "google-signin-btn" }:
     const el = document.getElementById(containerId);
     if (!el) return;
 
-    const init = () => {
+    let cancelled = false;
+
+    const renderButton = () => {
       const gsi = (
         window as unknown as {
           google?: { accounts: { id: { initialize: (o: object) => void; renderButton: (el: HTMLElement, o: object) => void } } };
         }
       ).google;
-      if (!gsi?.accounts?.id) return;
+      if (!gsi?.accounts?.id) return false;
 
       if (!gsiInitialized) {
         gsi.accounts.id.initialize({
@@ -70,20 +83,29 @@ export default function GoogleLoginButton({ containerId = "google-signin-btn" }:
       }
       el.innerHTML = "";
       const w = el.getBoundingClientRect().width;
+      const widthPx = w > 40 ? Math.floor(w) : Math.min(400, typeof window !== "undefined" ? window.innerWidth - 48 : 400);
       gsi.accounts.id.renderButton(el, {
         type: "standard",
         theme: "outline",
         size: "large",
         text: "continue_with",
         shape: "pill",
-        width: w > 40 ? Math.floor(w) : 400,
+        width: widthPx,
         locale: "id",
       });
+      return true;
+    };
+
+    const tryInit = (attempt: number) => {
+      if (cancelled) return;
+      if (renderButton()) return;
+      if (attempt >= 40) return;
+      setTimeout(() => tryInit(attempt + 1), 100);
     };
 
     const scheduleInit = () => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(init);
+        requestAnimationFrame(() => tryInit(0));
       });
     };
 
@@ -98,22 +120,23 @@ export default function GoogleLoginButton({ containerId = "google-signin-btn" }:
       } else {
         existing.addEventListener("load", scheduleInit, { once: true });
       }
-      return () => {
-        el.innerHTML = "";
+    } else {
+      const script = document.createElement("script");
+      script.src = scriptSrc;
+      script.async = true;
+      script.defer = true;
+      script.onload = scheduleInit;
+      script.onerror = () => {
+        if (!cancelled) setScriptError(true);
       };
+      document.head.appendChild(script);
     }
 
-    const script = document.createElement("script");
-    script.src = scriptSrc;
-    script.async = true;
-    script.defer = true;
-    script.onload = scheduleInit;
-    document.head.appendChild(script);
-
     return () => {
+      cancelled = true;
       el.innerHTML = "";
     };
-  }, [handleCredentialResponse, containerId]);
+  }, [handleCredentialResponse, containerId, redirectAfterLogin]);
 
   if (!GOOGLE_CLIENT_ID) {
     return (
@@ -128,9 +151,17 @@ export default function GoogleLoginButton({ containerId = "google-signin-btn" }:
     );
   }
 
+  if (scriptError) {
+    return (
+      <p className="rounded-2xl border border-white/40 bg-white/10 px-4 py-3 text-center text-sm text-white/90">
+        Gagal memuat skrip Google. Periksa koneksi, atau domain tunnel (Authorized JavaScript origins) di Google Cloud Console.
+      </p>
+    );
+  }
+
   return (
     <div className="w-full overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-white/20 [&>div]:flex [&>div]:w-full [&>div]:justify-center">
-      <div id={containerId} className="flex min-h-[48px] w-full items-center justify-center px-1 py-0.5" />
+      <div id={containerId} className="flex min-h-[48px] w-full items-center justify-center px-1 py-0.5 touch-manipulation" />
     </div>
   );
 }

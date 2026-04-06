@@ -1,4 +1,15 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+/**
+ * URL dasar API Express.
+ * - Jika NEXT_PUBLIC_API_URL di-set: dipakai apa adanya (mis. tunnel backend terpisah).
+ * - Jika tidak di-set: di browser pakai path relatif "" → fetch("/api/...") lewat proxy Next (next.config rewrites) — cocok saat akses lewat tunnel frontend saja.
+ * - Di server (SSR): langsung ke Express di mesin yang sama.
+ */
+export function getApiBase(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined") return "";
+  return "http://127.0.0.1:5000";
+}
 
 export interface BulkDiscount {
   id_discount: number;
@@ -21,7 +32,7 @@ export interface Product {
 }
 
 export async function fetchProducts(): Promise<Product[]> {
-  const res = await fetch(`${API_BASE}/api/products`, {
+  const res = await fetch(`${getApiBase()}/api/products`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Gagal mengambil data produk");
@@ -29,7 +40,7 @@ export async function fetchProducts(): Promise<Product[]> {
 }
 
 export async function fetchBestSelling(): Promise<Product[]> {
-  const res = await fetch(`${API_BASE}/api/products/best-selling`, {
+  const res = await fetch(`${getApiBase()}/api/products/best-selling`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Gagal mengambil data best selling");
@@ -37,7 +48,7 @@ export async function fetchBestSelling(): Promise<Product[]> {
 }
 
 export async function fetchProductById(id: number): Promise<Product> {
-  const res = await fetch(`${API_BASE}/api/products/${id}`, {
+  const res = await fetch(`${getApiBase()}/api/products/${id}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Produk tidak ditemukan");
@@ -45,7 +56,7 @@ export async function fetchProductById(id: number): Promise<Product> {
 }
 
 export async function fetchCategories(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/api/products/categories`, {
+  const res = await fetch(`${getApiBase()}/api/products/categories`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Gagal mengambil kategori");

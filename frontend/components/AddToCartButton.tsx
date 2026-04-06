@@ -42,7 +42,7 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
             type="button"
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             disabled={qty <= 1}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
+            className="touch-manipulation flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30"
           >
             <Minus className="h-4 w-4" />
           </button>
@@ -73,7 +73,7 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
         type="button"
         onClick={handleAdd}
         disabled={disabled}
-        className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-colors sm:text-base ${
+        className={`touch-manipulation flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-colors sm:text-base ${
           added
             ? "bg-green-600 text-white"
             : "bg-[#163f73] text-white hover:bg-[#0f2d55]"

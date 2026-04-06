@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins, Roboto_Slab } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider } from "@/lib/auth-context";
@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   title: "TopAssist — Konveksi Tas & Produk Custom Berkualitas",
   description:
     "Temukan berbagai produk berkualitas untuk keperluan hobi maupun fashion anda. Produk konveksi dari Top Production dengan harga terjangkau.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default function RootLayout({

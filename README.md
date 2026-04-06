@@ -95,6 +95,25 @@ npm run dev
 
 Buka **http://localhost:3000**.
 
+## Buka dari HP (WiFi sama)
+
+Di PC, cari IP WiFi (mis. `192.168.18.5`). Jalankan frontend dengan host semua interface:
+
+```bash
+cd frontend
+npm run dev -- -H 0.0.0.0
+```
+
+Di **`frontend/.env.local`**, untuk tes dari HP ganti API ke IP PC (bukan `localhost`):
+
+```env
+NEXT_PUBLIC_API_URL=http://192.168.18.5:5000
+```
+
+(Sesuaikan IP dan pastikan firewall mengizinkan port 3000 dan 5000.)
+
+**Login Google di HP:** di [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → OAuth 2.0 Client ID → **Authorized JavaScript origins** harus berisi origin yang **persis** sama dengan alamat yang dibuka di browser, mis. `http://192.168.18.5:3000`. Kalau cuma ada `http://localhost:3000`, tombol Google di HP akan gagal atau hilang. IP WiFi bisa berubah; kalau berubah, update origin di Google Console atau pakai IP statis di router.
+
 ## Ringkasannya
 
 Dua terminal: satu `backend` (`npm run dev`), satu `frontend` (`npm run dev`). Pastikan `.env` dan `.env.local` sudah benar; file itu **tidak** ikut push ke GitHub (sudah di `.gitignore`).
