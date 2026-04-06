@@ -30,9 +30,9 @@ export default function Navbar() {
               alt="TopAssist Logo"
               width={48}
               height={48}
-              className="h-10 w-10 rounded-full object-cover sm:h-12 sm:w-12"
+              className="h-10 w-10 rounded-full object-cover ring-2 ring-white/35 ring-offset-2 ring-offset-[#163f73]/80 sm:h-12 sm:w-12"
             />
-            <span className="text-xl font-extrabold text-white drop-shadow-md sm:text-2xl">
+            <span className="text-xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-2xl">
               TopAssist
             </span>
           </Link>

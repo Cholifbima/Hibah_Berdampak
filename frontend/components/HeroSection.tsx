@@ -53,7 +53,7 @@ export default function HeroSection() {
             <div className="mt-6 sm:mt-8">
               <a
                 href="#produk-terlaris"
-                className="inline-flex items-center rounded-2xl border-2 border-white px-8 py-3 text-sm font-light uppercase text-white hover:bg-white/10 transition-colors sm:px-10 sm:py-3.5 sm:text-base"
+                className="inline-flex items-center rounded-full border-2 border-white/90 bg-white/5 px-8 py-3 text-sm font-medium uppercase tracking-wide text-white shadow-lg shadow-black/20 ring-1 ring-white/30 transition-all duration-200 hover:scale-[1.02] hover:bg-white/15 active:scale-[0.98] sm:px-10 sm:py-3.5 sm:text-base"
               >
                 jelajahi sekarang
               </a>
