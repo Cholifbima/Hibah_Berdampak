@@ -1,0 +1,12 @@
+# === Yang harus ada di komputer (bukan lewat npm) ===
+# File ini BUKAN daftar library project. Library Node ada di
+# backend/package.json dan frontend/package.json (+ package-lock.json).
+#
+# Setelah clone: dari folder root repo jalankan:
+#   npm run install:all
+# Itu yang mengunduh semua dependency npm ke backend/node_modules dan frontend/node_modules.
+
+Node.js 20 LTS atau lebih baru
+npm (ikut Node)
+Git
+MySQL (URL koneksi di backend/.env)

@@ -1,0 +1,8 @@
+{
+  "name": "hibah-berdampak",
+  "private": true,
+  "description": "Root repo: skrip bantu install dependency backend + frontend sekaligus",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  }
+}
