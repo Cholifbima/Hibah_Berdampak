@@ -1,0 +1,7 @@
+# Persyaratan lingkungan pengembangan TopAssist / Hibah Berdampak
+# Detail langkah setup: baca README.md di root repo
+
+Node.js 20 LTS atau lebih baru
+npm (biasanya ikut instalasi Node)
+Git
+MySQL (database bisa remote/cloud; URL diset di backend/.env)
