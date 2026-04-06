@@ -4,7 +4,7 @@ Repo ini isinya **frontend** (Next.js) dan **backend** (Express + Prisma + MySQL
 
 ## Yang perlu dipasang dulu
 
-Lihat `requirements.txt` di folder yang sama. Intinya: **Node.js 20+**, **npm**, dan **Git**. Database MySQL bisa pakai layanan cloud (mis. Aiven) atau lokal, yang penting connection string-nya masuk ke `.env` backend.
+Baca `requirements.txt`: itu **hanya** daftar program di PC (Node, Git, dll). **Daftar library npm** ada di `backend/package.json` dan `frontend/package.json` — versi terkunci lewat `package-lock.json`.
 
 ## Ambil kode dari GitHub
 
@@ -21,18 +21,29 @@ git pull origin ui-design
 
 (Branch utama development kami biasanya `ui-design`; kalau beda, ganti nama branch-nya.)
 
+## Install semua dependency npm (satu perintah)
+
+Di **folder root** repo (bukan di dalam `backend`/`frontend`):
+
+```bash
+npm run install:all
+```
+
+Ini menjalankan `npm install` di `backend` dan `frontend` berurutan. Setelah itu `node_modules` di kedua folder sudah terisi; tidak perlu `npm install` manual dua kali kecuali mau update paket.
+
 ## Setup backend
+
+Kalau sudah `npm run install:all`, langkah `npm install` di bawah bisa dilewati.
 
 ```bash
 cd backend
-npm install
 ```
 
 Buat file **`backend/.env`** (jangan di-commit). Isi minimal:
 
 ```env
 DATABASE_URL="mysql://USER:PASSWORD@HOST:PORT/NAMA_DB?sslaccept=strict"
-JWT_SECRET=isi_string_rahasia_bebas
+JWT_SECRET=string_rahasia_bebas
 PORT=5000
 ```
 
@@ -63,14 +74,15 @@ Buka terminal baru:
 
 ```bash
 cd frontend
-npm install
 ```
+
+(`npm install` di sini tidak perlu jika sudah `npm run install:all` di root.)
 
 Buat file **`frontend/.env.local`**:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=isi_dari_Google_Cloud_kalau_pakai_login_Google
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=client_id_google_opsional
 ```
 
 `NEXT_PUBLIC_GOOGLE_CLIENT_ID` boleh kosong dulu kalau fitur Google login belum dipakai.
