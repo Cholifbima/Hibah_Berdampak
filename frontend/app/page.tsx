@@ -1,16 +1,20 @@
-"use client";
-import { useEffect, useState } from "react";
+import { getApiBaseUrl } from "@/lib/utils";
 
-export default function Home() {
-  const [pesanBackend, setPesanBackend] = useState("Sedang mencari sinyal backend...");
+async function getBackendMessage(): Promise<string> {
+  try {
+    const res = await fetch(getApiBaseUrl(), {
+      cache: "no-store",
+    });
+    if (!res.ok) return "Backend merespons error. Cek endpoint /api di server.";
+    const data = (await res.json()) as { message?: string };
+    return data.message || "Backend hidup, tapi message kosong.";
+  } catch {
+    return "Waduh, backend-nya belum nyambung nih!";
+  }
+}
 
-  useEffect(() => {
-    // Ini perintah untuk mengetuk pintu Express.js milikmu di Port 5000
-    fetch("http://localhost:5000")
-      .then((respons) => respons.json())
-      .then((data) => setPesanBackend(data.message))
-      .catch((error) => setPesanBackend("Waduh, backend-nya belum nyambung nih!"));
-  }, []);
+export default async function Home() {
+  const pesanBackend = await getBackendMessage();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 font-sans">
