@@ -9,7 +9,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { type BulkDiscount, getApiBase } from "./api";
+import { type BulkDiscount, apiUrl } from "./api";
 import { useAuth } from "./auth-context";
 
 
@@ -143,7 +143,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             await new Promise((r) => setTimeout(r, 400 * attempt));
           }
           try {
-            const res = await fetch(`${getApiBase()}/api/cart`, {
+            const res = await fetch(apiUrl("/cart"), {
               headers: { Authorization: `Bearer ${token}` },
               signal: ac.signal,
             });
@@ -167,7 +167,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const merged = mergeCarts(server, guest);
 
         if (guest.length > 0) {
-          const put = await fetch(`${getApiBase()}/api/cart`, {
+          const put = await fetch(apiUrl("/cart"), {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -238,7 +238,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
     persistTimerRef.current = setTimeout(() => {
-      fetch(`${getApiBase()}/api/cart`, {
+      fetch(apiUrl("/cart"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -280,7 +280,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
     clearGuestStorage();
     if (user && token) {
-      fetch(`${getApiBase()}/api/cart`, {
+      fetch(apiUrl("/cart"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

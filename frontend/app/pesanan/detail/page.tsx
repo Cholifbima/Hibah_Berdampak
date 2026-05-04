@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { formatRupiah, getApiBase } from "@/lib/api";
+import { formatRupiah, apiUrl } from "@/lib/api";
 import {
   ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, Phone,
   User, FileText, Loader2, Edit3, Save, X,
@@ -85,8 +86,9 @@ function StatusTimeline({ status }: { status: string }) {
   );
 }
 
-export default function OrderDetailPage() {
-  const params = useParams();
+function OrderDetailInner() {
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("id");
   const router = useRouter();
   const { token, loading: authLoading } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
@@ -99,10 +101,10 @@ export default function OrderDetailPage() {
   const [saving, setSaving] = useState(false);
 
   const fetchOrder = useCallback(async () => {
-    if (!token || !params.id) return;
+    if (!token || !orderId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/orders/${params.id}`, {
+      const res = await fetch(apiUrl(`/orders/${orderId}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -118,7 +120,7 @@ export default function OrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, params.id]);
+  }, [token, orderId]);
 
   useEffect(() => {
     if (!authLoading) fetchOrder();
@@ -128,7 +130,7 @@ export default function OrderDetailPage() {
     if (!token || !order) return;
     setSaving(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/orders/${order.id_order}/status`, {
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/status`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ nomor_resi: resiInput, jenis_pengiriman: courierInput || null }),
@@ -175,11 +177,10 @@ export default function OrderDetailPage() {
       <div className="h-20 bg-gradient-to-r from-[#1f67df] to-[#163a78]"><Navbar /></div>
 
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-        <button onClick={() => router.push("/pesanan")} className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-[#163f73] hover:underline">
+        <button type="button" onClick={() => router.push("/pesanan")} className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-[#163f73] hover:underline">
           <ArrowLeft className="h-4 w-4" /> Kembali ke Pesanan
         </button>
 
-        {/* Header */}
         <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -199,18 +200,16 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Shipping info */}
         <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-bold text-[#163f73]">
             <Truck className="h-5 w-5" /> Informasi Pengiriman
           </h2>
 
-          {/* Resi section */}
           <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-700">Nomor Resi</span>
               {!editingResi && (
-                <button onClick={() => setEditingResi(true)} className="flex items-center gap-1 text-xs font-semibold text-[#163f73] hover:underline">
+                <button type="button" onClick={() => setEditingResi(true)} className="flex items-center gap-1 text-xs font-semibold text-[#163f73] hover:underline">
                   <Edit3 className="h-3.5 w-3.5" /> {order.nomor_resi ? "Ubah" : "Tambahkan Resi"}
                 </button>
               )}
@@ -240,6 +239,7 @@ export default function OrderDetailPage() {
                 />
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={handleSaveResi}
                     disabled={saving}
                     className="flex items-center gap-1.5 rounded-lg bg-[#163f73] px-4 py-2 text-xs font-bold text-white hover:bg-[#0f2d55] transition-colors disabled:opacity-50"
@@ -247,6 +247,7 @@ export default function OrderDetailPage() {
                     <Save className="h-3.5 w-3.5" /> {saving ? "Menyimpan..." : "Simpan"}
                   </button>
                   <button
+                    type="button"
                     onClick={() => { setEditingResi(false); setResiInput(order.nomor_resi || ""); setCourierInput(order.jenis_pengiriman || ""); }}
                     className="flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100"
                   >
@@ -266,7 +267,6 @@ export default function OrderDetailPage() {
             )}
           </div>
 
-          {/* Penerima */}
           <div className="mt-4 space-y-3">
             <div className="flex items-start gap-3">
               <User className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
@@ -301,7 +301,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Products */}
         <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-bold text-[#163f73]">
             <Package className="h-5 w-5" /> Detail Produk
@@ -309,7 +308,7 @@ export default function OrderDetailPage() {
 
           <div className="mt-4 space-y-3">
             {order.details.map((item) => (
-              <Link key={item.id_detail} href={`/toko/${item.id_product}`} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
+              <Link key={item.id_detail} href={`/toko/detail?id=${item.id_product}`} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#a8d4f5] to-[#6bb3e8]">
                   {item.product.gambar_url ? (
                     <Image src={item.product.gambar_url} alt={item.product.nama_produk} fill sizes="64px" className="object-contain p-1" />
@@ -335,5 +334,22 @@ export default function OrderDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50">
+          <div className="h-20 bg-gradient-to-r from-[#1f67df] to-[#163a78]"><Navbar /></div>
+          <div className="flex items-center justify-center py-32">
+            <Loader2 className="h-8 w-8 animate-spin text-[#163f73]" />
+          </div>
+        </div>
+      }
+    >
+      <OrderDetailInner />
+    </Suspense>
   );
 }

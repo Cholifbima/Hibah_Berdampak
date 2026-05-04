@@ -1,21 +1,27 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ChatBox from "@/components/ChatBox";
 import { fetchProducts, type Product } from "@/lib/api";
 
-export const metadata = {
-  title: "Konsultan AI — TopAssist",
-  description: "Tanyakan apapun tentang produk TopAssist kepada Konsultan AI kami.",
-};
+export default function KonsultanPage() {
+  const [products, setProducts] = useState<Product[]>([]);
 
-export default async function KonsultanPage() {
-  let products: Product[] = [];
-
-  try {
-    products = await fetchProducts();
-  } catch {
-    // fallback empty
-  }
+  useEffect(() => {
+    let cancelled = false;
+    fetchProducts()
+      .then((p) => {
+        if (!cancelled) setProducts(p);
+      })
+      .catch(() => {
+        if (!cancelled) setProducts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const activeProducts = products.filter((p) => p.nama_produk.trim() !== "");
 

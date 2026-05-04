@@ -16,7 +16,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   return (
-    <Link href={`/toko/${product.id_product}`} className="relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow">
+    <Link href={`/toko/detail?id=${product.id_product}`} className="relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow">
       {/* Badge Best Seller */}
       <div className="absolute top-3 left-3 z-10">
         <div className="rounded-xl bg-gradient-to-r from-[#dca951] to-[#efd286] px-3 py-1.5 sm:px-4 sm:py-2">

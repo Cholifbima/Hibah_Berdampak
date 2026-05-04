@@ -6,12 +6,36 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
+const api = express.Router();
 const prisma = new PrismaClient();
-const PORT = process.env.PORT || 5000;
+
+const PORT = Number(process.env.PORT) || 5000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 const JWT_SECRET = process.env.JWT_SECRET || 'topassist-secret-key-change-in-production';
 
-app.use(cors());
-app.use(express.json());
+if (NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.warn('[topassist] WARNING: JWT_SECRET tidak di-set di production. Set di cPanel Environment.');
+}
+
+app.set('trust proxy', 1);
+
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+  : true;
+
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: '1mb' }));
+
+app.use((req, res, next) => {
+  const t = new Date().toISOString();
+  console.log(`[${t}] ${req.method} ${req.originalUrl || req.url}`);
+  next();
+});
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -27,13 +51,14 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// Root health (Passenger / uptime checks)
 app.get('/', (req, res) => {
-  res.json({ message: "Halo! Server Top Production sudah menyala" });
+  res.json({ ok: true, service: 'topassist-api', env: NODE_ENV });
 });
 
-// ========== AUTH ROUTES ==========
+// ========== AUTH ==========
 
-app.post('/api/auth/register', async (req, res) => {
+api.post('/auth/register', async (req, res) => {
   try {
     const { nama_lengkap, username, email, no_whatsapp, password } = req.body;
     if (!nama_lengkap || !username || !password) {
@@ -49,14 +74,24 @@ app.post('/api/auth/register', async (req, res) => {
       data: { nama_lengkap, username, email: email || null, no_whatsapp: no_whatsapp || '', password: hashed },
     });
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id_user: user.id_user, nama_lengkap: user.nama_lengkap, username: user.username, email: user.email, role: user.role } });
+    res.json({
+      token,
+      user: {
+        id_user: user.id_user,
+        nama_lengkap: user.nama_lengkap,
+        username: user.username,
+        email: user.email,
+        no_whatsapp: user.no_whatsapp,
+        role: user.role,
+      },
+    });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Gagal membuat akun' });
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+api.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username dan password wajib diisi' });
@@ -70,14 +105,24 @@ app.post('/api/auth/login', async (req, res) => {
     if (!valid) return res.status(401).json({ error: 'Username atau password salah' });
 
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id_user: user.id_user, nama_lengkap: user.nama_lengkap, username: user.username, email: user.email, role: user.role } });
+    res.json({
+      token,
+      user: {
+        id_user: user.id_user,
+        nama_lengkap: user.nama_lengkap,
+        username: user.username,
+        email: user.email,
+        no_whatsapp: user.no_whatsapp,
+        role: user.role,
+      },
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Gagal login' });
   }
 });
 
-app.post('/api/auth/google', async (req, res) => {
+api.post('/auth/google', async (req, res) => {
   try {
     const { google_id, email, name } = req.body;
     if (!google_id || !email) return res.status(400).json({ error: 'Data Google tidak lengkap' });
@@ -120,7 +165,17 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id_user: user.id_user, nama_lengkap: user.nama_lengkap, username: user.username, email: user.email, role: user.role } });
+    res.json({
+      token,
+      user: {
+        id_user: user.id_user,
+        nama_lengkap: user.nama_lengkap,
+        username: user.username,
+        email: user.email,
+        no_whatsapp: user.no_whatsapp,
+        role: user.role,
+      },
+    });
   } catch (error) {
     console.error('Google auth error:', error);
     res.status(500).json({ error: 'Gagal login dengan Google' });
@@ -138,7 +193,7 @@ function mapCartRows(rows) {
   }));
 }
 
-app.get('/api/cart', authMiddleware, async (req, res) => {
+api.get('/cart', authMiddleware, async (req, res) => {
   try {
     const rows = await prisma.cartItem.findMany({
       where: { id_user: req.userId },
@@ -151,7 +206,7 @@ app.get('/api/cart', authMiddleware, async (req, res) => {
   }
 });
 
-app.put('/api/cart', authMiddleware, async (req, res) => {
+api.put('/cart', authMiddleware, async (req, res) => {
   try {
     const { items } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ error: 'items harus array' });
@@ -184,7 +239,7 @@ app.put('/api/cart', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/products', async (req, res) => {
+api.get('/products', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       include: { discounts: true },
@@ -197,7 +252,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.get('/api/products/best-selling', async (req, res) => {
+api.get('/products/best-selling', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       where: { stok: { gt: 0 } },
@@ -212,7 +267,7 @@ app.get('/api/products/best-selling', async (req, res) => {
   }
 });
 
-app.get('/api/products/categories', async (req, res) => {
+api.get('/products/categories', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       where: { nama_produk: { not: '' } },
@@ -226,7 +281,7 @@ app.get('/api/products/categories', async (req, res) => {
   }
 });
 
-app.get('/api/products/:id', async (req, res) => {
+api.get('/products/:id', async (req, res) => {
   try {
     const product = await prisma.product.findUnique({
       where: { id_product: parseInt(req.params.id) },
@@ -240,9 +295,7 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// ========== ORDER ROUTES ==========
-
-app.post('/api/orders', authMiddleware, async (req, res) => {
+api.post('/orders', authMiddleware, async (req, res) => {
   try {
     const { kode_pesanan, nama_penerima, alamat_pengiriman, no_telepon, catatan, items } = req.body;
     if (!kode_pesanan || !nama_penerima || !alamat_pengiriman || !items?.length)
@@ -277,7 +330,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/orders/me', authMiddleware, async (req, res) => {
+api.get('/orders/me', authMiddleware, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       where: { id_user: req.userId },
@@ -291,7 +344,7 @@ app.get('/api/orders/me', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/orders/:id', authMiddleware, async (req, res) => {
+api.get('/orders/:id', authMiddleware, async (req, res) => {
   try {
     const order = await prisma.order.findUnique({
       where: { id_order: parseInt(req.params.id) },
@@ -307,7 +360,7 @@ app.get('/api/orders/:id', authMiddleware, async (req, res) => {
   }
 });
 
-app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
+api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status_pesanan, jenis_pengiriman, nomor_resi } = req.body;
     const order = await prisma.order.findUnique({ where: { id_order: parseInt(req.params.id) } });
@@ -332,6 +385,120 @@ app.patch('/api/orders/:id/status', authMiddleware, async (req, res) => {
   }
 });
 
+function adminMiddleware(req, res, next) {
+  authMiddleware(req, res, () => {
+    if (req.userRole !== 'ADMIN')
+      return res.status(403).json({ error: 'Hanya admin yang bisa mengakses' });
+    next();
+  });
+}
+
+api.get('/admin/stats', adminMiddleware, async (req, res) => {
+  try {
+    const [totalPendapatan, totalProduk, totalStok, totalUser, totalPesanan] = await Promise.all([
+      prisma.order.aggregate({ _sum: { total_pembayaran: true } }),
+      prisma.product.count(),
+      prisma.product.aggregate({ _sum: { stok: true } }),
+      prisma.user.count({ where: { role: 'CUSTOMER' } }),
+      prisma.order.count(),
+    ]);
+    res.json({
+      total_pendapatan: totalPendapatan._sum.total_pembayaran || 0,
+      total_produk: totalProduk,
+      total_stok: totalStok._sum.stok || 0,
+      total_user: totalUser,
+      total_pesanan: totalPesanan,
+    });
+  } catch (error) {
+    console.error('Admin stats error:', error);
+    res.status(500).json({ error: 'Gagal mengambil statistik' });
+  }
+});
+
+api.get('/admin/tren-penjualan', adminMiddleware, async (req, res) => {
+  try {
+    const details = await prisma.orderDetail.groupBy({
+      by: ['id_product'],
+      _sum: { kuantitas: true, subtotal: true },
+      orderBy: { _sum: { kuantitas: 'desc' } },
+      take: 10,
+    });
+    const ids = details.map((d) => d.id_product);
+    const products = await prisma.product.findMany({ where: { id_product: { in: ids } } });
+    const map = Object.fromEntries(products.map((p) => [p.id_product, p]));
+    const result = details.map((d) => ({
+      id_product: d.id_product,
+      nama_produk: map[d.id_product]?.nama_produk ?? '-',
+      gambar_url: map[d.id_product]?.gambar_url ?? null,
+      harga_satuan: map[d.id_product]?.harga_satuan ?? 0,
+      stok: map[d.id_product]?.stok ?? 0,
+      total_terjual: d._sum.kuantitas || 0,
+      total_pendapatan: d._sum.subtotal || 0,
+    }));
+    res.json(result);
+  } catch (error) {
+    console.error('Tren penjualan error:', error);
+    res.status(500).json({ error: 'Gagal mengambil tren penjualan' });
+  }
+});
+
+api.get('/admin/orders', adminMiddleware, async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        details: { include: { product: true } },
+        user: { select: { nama_lengkap: true, username: true, email: true } },
+      },
+      orderBy: { tanggal_pesanan: 'desc' },
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error('Admin orders error:', error);
+    res.status(500).json({ error: 'Gagal mengambil pesanan' });
+  }
+});
+
+api.get('/admin/products', adminMiddleware, async (req, res) => {
+  try {
+    const products = await prisma.product.findMany({
+      include: { discounts: true },
+      orderBy: { id_product: 'asc' },
+    });
+    res.json(products);
+  } catch (error) {
+    console.error('Admin products error:', error);
+    res.status(500).json({ error: 'Gagal mengambil produk' });
+  }
+});
+
+api.get('/admin/users', adminMiddleware, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id_user: true, nama_lengkap: true, username: true,
+        email: true, no_whatsapp: true, role: true, created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Admin users error:', error);
+    res.status(500).json({ error: 'Gagal mengambil data user' });
+  }
+});
+
+app.use('/api', api);
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found', path: req.originalUrl });
+});
+
+app.use((err, req, res, next) => {
+  console.error('[topassist] Unhandled error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server jalan di http://localhost:${PORT}`);
+  console.log(`[topassist] API listening on port ${PORT} (${NODE_ENV})`);
 });

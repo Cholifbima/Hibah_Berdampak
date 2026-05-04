@@ -30,9 +30,9 @@ export default function Navbar() {
               alt="TopAssist Logo"
               width={48}
               height={48}
-              className="h-10 w-10 rounded-full object-cover sm:h-12 sm:w-12"
+              className="h-10 w-10 rounded-full object-contain p-0.5 ring-2 ring-white/35 ring-offset-2 ring-offset-[#163f73]/80 sm:h-12 sm:w-12"
             />
-            <span className="text-xl font-extrabold text-white drop-shadow-md sm:text-2xl">
+            <span className="text-xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-2xl">
               TopAssist
             </span>
           </Link>
@@ -63,6 +63,11 @@ export default function Navbar() {
 
             {user ? (
               <div className="hidden sm:flex items-center gap-2">
+                {user.role === "ADMIN" && (
+                  <Link href="/admin" className="rounded-xl px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-300 hover:bg-white/10 transition-colors border border-amber-300/40" title="Admin Panel">
+                    Admin
+                  </Link>
+                )}
                 <Link href="/pesanan" className="rounded-xl p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Pesanan Saya">
                   <Package className="h-5 w-5" />
                 </Link>
@@ -115,6 +120,15 @@ export default function Navbar() {
           ))}
           {user ? (
             <>
+              {user.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  className="block rounded-xl px-4 py-3 text-sm font-bold uppercase text-amber-300 hover:bg-white/10"
+                  onClick={() => setOpen(false)}
+                >
+                  Admin Panel
+                </Link>
+              )}
               <Link
                 href="/pesanan"
                 className="block rounded-xl px-4 py-3 text-sm font-bold uppercase text-white hover:bg-white/10"

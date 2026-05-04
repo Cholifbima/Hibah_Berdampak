@@ -11,29 +11,24 @@ export default function PemesananPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1">
-        <section
-          className="pt-20 pb-6 sm:pt-24 sm:pb-8"
-          style={{
-            background:
-              "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(28, 84, 179) 50%, rgb(24, 65, 136) 100%)",
-          }}
-        >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <h1 className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
+      <main
+        className="flex-1 min-h-screen pt-[72px]"
+        style={{
+          background:
+            "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(22, 63, 115) 60%, rgb(15, 45, 85) 100%)",
+        }}
+      >
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+          <div className="mb-5">
+            <h1 className="text-xl font-extrabold text-white sm:text-2xl">
               Form Pemesanan
             </h1>
             <p className="mt-1 text-sm text-white/70">
               Lengkapi data di bawah, pesanan akan dikirim langsung ke WhatsApp kami.
             </p>
           </div>
-        </section>
-
-        <section className="bg-[#e9f4ff] py-6 sm:py-8 lg:py-10">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <OrderForm />
-          </div>
-        </section>
+          <OrderForm />
+        </div>
       </main>
       <Footer />
     </>
