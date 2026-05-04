@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { formatRupiah, getApiBase } from "@/lib/api";
+import { formatRupiah, apiUrl } from "@/lib/api";
 import { Package, Clock, Truck, CheckCircle, Search, ChevronRight, ShoppingBag, LogIn, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -165,7 +165,7 @@ function OrderCard({ order }: { order: Order }) {
 
   return (
     <Link
-      href={`/pesanan/${order.id_order}`}
+      href={`/pesanan/detail?id=${order.id_order}`}
       className="block rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow sm:p-5"
     >
       <div className="flex items-start justify-between gap-3">
@@ -226,7 +226,7 @@ export default function PesananPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/orders/me`, {
+      const res = await fetch(apiUrl("/orders/me"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setOrders(await res.json());

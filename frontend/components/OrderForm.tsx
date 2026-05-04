@@ -3,9 +3,9 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCart, getEffectivePrice } from "@/lib/cart-context";
-import { formatRupiah, getApiBase } from "@/lib/api";
+import { formatRupiah, apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Send, ShoppingBag, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -19,16 +19,42 @@ function getNextOrderNumber(): string {
   return `#${String(next).padStart(4, "0")}`;
 }
 
+/* Reusable input field component matching Figma style */
+function FormField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-[11px] font-semibold text-[#373737]">
+        {label}
+        {required && <span className="ml-0.5 text-[#a01720]"> *</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputClass =
+  "w-full rounded-[10px] border border-black/20 bg-white/60 px-3 py-2.5 text-[13px] text-gray-800 placeholder:text-[#a4a3a7] placeholder:text-[11px] focus:border-[#163f73] focus:bg-white focus:ring-2 focus:ring-[#163f73]/20 focus:outline-none transition-colors backdrop-blur-sm";
+
 export default function OrderForm() {
   const { items, clearCart, cartLoading } = useCart();
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [nama, setNama] = useState("");
-  const [telepon, setTelepon] = useState("");
+  const [nama, setNama] = useState(user?.nama_lengkap ?? "");
+  const [telepon, setTelepon] = useState(user?.no_whatsapp ?? "");
+  const [country, setCountry] = useState("Indonesia");
   const [alamat, setAlamat] = useState("");
+  const [detailAlamat, setDetailAlamat] = useState("");
+  const [provinsi, setProvinsi] = useState("");
   const [catatan, setCatatan] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
 
   const previewOrderNumber = useMemo(() => {
     if (typeof window === "undefined") return "#0001";
@@ -36,17 +62,29 @@ export default function OrderForm() {
     return `#${String(current + 1).padStart(4, "0")}`;
   }, []);
 
+  /* --- guards --- */
+  if (authLoading || (user && cartLoading)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="h-10 w-10 animate-spin text-[#163f73]" />
+        <p className="mt-3 text-sm text-white/80">Memuat keranjang…</p>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <ShoppingBag className="h-20 w-20 text-[#163f73]/20" />
-        <h2 className="mt-4 text-xl font-bold text-[#163f73]">Keranjang Kosong</h2>
+      <div className="mx-auto max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#163f73]/10 text-3xl">
+          🛍️
+        </div>
+        <h2 className="text-lg font-bold text-[#163f73]">Keranjang Kosong</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Tambah produk ke keranjang terlebih dahulu sebelum membuat pesanan.
+          Tambah produk ke keranjang terlebih dahulu.
         </p>
         <Link
           href="/toko"
-          className="mt-6 inline-flex items-center rounded-2xl bg-[#163f73] px-8 py-3 text-sm font-bold text-white hover:bg-[#0f2d55] transition-colors"
+          className="mt-6 inline-flex items-center rounded-full bg-[#163f73] px-8 py-3 text-sm font-bold text-white hover:bg-[#0f2d55] transition-colors"
         >
           Lihat Produk
         </Link>
@@ -54,31 +92,22 @@ export default function OrderForm() {
     );
   }
 
-  if (authLoading || (user && cartLoading)) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="h-10 w-10 animate-spin text-[#163f73]" />
-        <p className="mt-3 text-sm text-gray-500">Memuat keranjang…</p>
-      </div>
-    );
-  }
-
   if (!user || !token) {
     return (
-      <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+      <div className="mx-auto max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <h2 className="text-lg font-bold text-[#163f73]">Login dulu</h2>
         <p className="mt-2 text-sm text-gray-600">
-          Untuk mengisi form pemesanan dan menyimpan pesanan ke akun, silakan login. Keranjang tamu tetap ada di perangkat ini sampai Anda login — isinya akan digabung ke akun Anda.
+          Login untuk mengisi form pemesanan dan menyimpan riwayat pesanan ke akun Anda.
         </p>
         <Link
           href="/login?redirect=/pemesanan"
-          className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-[#163f73] py-3.5 text-sm font-bold text-white hover:bg-[#0f2d55] transition-colors sm:w-auto sm:px-10"
+          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#163f73] py-3.5 text-sm font-bold text-white hover:bg-[#0f2d55] transition-colors"
         >
           Login untuk lanjut
         </Link>
         <Link
           href="/keranjang"
-          className="mt-3 block text-center text-sm font-semibold text-[#163f73] underline-offset-2 hover:underline"
+          className="mt-3 block text-center text-sm font-semibold text-[#163f73] hover:underline"
         >
           Kembali ke keranjang
         </Link>
@@ -92,18 +121,22 @@ export default function OrderForm() {
   );
 
   function buildMessage(orderNum: string): string {
-    const rule = "--------------------------------";
+    const sep = "--------------------------------";
+    const fullAlamat = [alamat, detailAlamat, provinsi, country]
+      .filter(Boolean)
+      .join(", ");
+
     const lines: string[] = [];
     lines.push(`*PESANAN BARU - TopAssist*`);
     lines.push(`*No. Order: ${orderNum}*`);
-    lines.push(rule);
+    lines.push(sep);
     lines.push("");
     lines.push(`*Nama:* ${nama}`);
     lines.push(`*Telepon:* ${telepon}`);
-    lines.push(`*Alamat:* ${alamat}`);
+    lines.push(`*Alamat:* ${fullAlamat}`);
     if (catatan.trim()) lines.push(`*Catatan:* ${catatan}`);
     lines.push("");
-    lines.push(rule);
+    lines.push(sep);
     lines.push("*Detail Pesanan:*");
     lines.push("");
 
@@ -122,7 +155,7 @@ export default function OrderForm() {
       lines.push("");
     });
 
-    lines.push(rule);
+    lines.push(sep);
     lines.push(`*TOTAL: ${formatRupiah(totalAfterDiscount)}*`);
     lines.push("");
     lines.push("Mohon konfirmasi pesanan ini. Terima kasih!");
@@ -130,22 +163,29 @@ export default function OrderForm() {
     return lines.join("\n");
   }
 
-  const isValid = nama.trim() && telepon.trim() && alamat.trim();
+  const isValid =
+    nama.trim() && telepon.trim() && alamat.trim() && provinsi.trim();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isValid || !user || !token) return;
 
     const orderNum = getNextOrderNumber();
+    const fullAlamat = [alamat, detailAlamat, provinsi, country]
+      .filter(Boolean)
+      .join(", ");
 
     try {
-      await fetch(`${getApiBase()}/api/orders`, {
+      await fetch(apiUrl("/orders"), {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           kode_pesanan: orderNum,
           nama_penerima: nama,
-          alamat_pengiriman: alamat,
+          alamat_pengiriman: fullAlamat,
           no_telepon: telepon,
           catatan,
           items: items.map((item) => ({
@@ -161,163 +201,186 @@ export default function OrderForm() {
     }
 
     const msg = encodeURIComponent(buildMessage(orderNum));
-    const url = `https://wa.me/${WA_NUMBER}?text=${msg}`;
-    window.open(url, "_blank");
+    window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
     clearCart();
     router.push("/");
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-5">
-      {/* Form kiri */}
-      <div className="space-y-5 lg:col-span-3">
-        <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-bold text-[#163f73]">Informasi Pemesan</h2>
+    <div className="mx-auto max-w-lg">
+      <form onSubmit={handleSubmit}>
+        {/* ── Card utama ── */}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
 
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                Nama Lengkap <span className="text-red-500">*</span>
-              </label>
+          {/* Produk dipesan */}
+          <div className="border-b border-gray-100 px-5 py-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#163f73]">
+              Produk Dipesan
+            </p>
+            <div className="space-y-3">
+              {items.map((item) => {
+                const unitPrice = getEffectivePrice(item);
+                const isDiscounted = unitPrice < item.harga_satuan;
+                return (
+                  <div key={item.id_product} className="flex gap-3">
+                    <div className="relative h-[56px] w-[56px] shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#c3dcff] to-[#7ab2f4]">
+                      {item.gambar_url ? (
+                        <Image
+                          src={item.gambar_url}
+                          alt={item.nama_produk}
+                          fill
+                          sizes="56px"
+                          className="object-contain p-1"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xl">🛍️</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-[#373737] line-clamp-2 leading-snug">
+                        {item.nama_produk}
+                      </p>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className="text-[13px] font-extrabold text-[#163f73]">
+                          {formatRupiah(unitPrice)}
+                        </span>
+                        {isDiscounted && (
+                          <>
+                            <span className="text-[10px] text-gray-400 line-through">
+                              {formatRupiah(item.harga_satuan)}
+                            </span>
+                            <span className="rounded-[3px] bg-[#c3dcff] px-1 py-px text-[8px] font-extrabold text-[#163f73]">
+                              -{Math.round((1 - unitPrice / item.harga_satuan) * 100)}%
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400">
+                        Stok tersedia &bull; Qty: {item.qty}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Form fields */}
+          <div className="space-y-4 px-5 py-5">
+            <FormField label="Nama" required>
               <input
                 type="text"
                 value={nama}
                 onChange={(e) => setNama(e.target.value)}
-                placeholder="Masukkan nama lengkap"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#163f73] focus:ring-2 focus:ring-[#163f73]/20 focus:outline-none transition-colors"
+                placeholder="Masukkan nama anda"
+                className={inputClass}
                 required
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                Nomor Telepon <span className="text-red-500">*</span>
-              </label>
+            <FormField label="Country/Region" required>
+              <input
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="Indonesia"
+                className={inputClass}
+                required
+              />
+            </FormField>
+
+            <FormField label="Alamat" required>
+              <input
+                type="text"
+                value={alamat}
+                onChange={(e) => setAlamat(e.target.value)}
+                placeholder="Jl., Kecamatan, Kota"
+                className={inputClass}
+                required
+              />
+            </FormField>
+
+            <FormField label="Apartement, Kos, Rumah, dll (optional)">
+              <input
+                type="text"
+                value={detailAlamat}
+                onChange={(e) => setDetailAlamat(e.target.value)}
+                placeholder="No. rumah, gang, RT/RW..."
+                className={inputClass}
+              />
+            </FormField>
+
+            <FormField label="Provinsi" required>
+              <input
+                type="text"
+                value={provinsi}
+                onChange={(e) => setProvinsi(e.target.value)}
+                placeholder="Masukkan provinsi"
+                className={inputClass}
+                required
+              />
+            </FormField>
+
+            <FormField label="Nomor Telepon" required>
               <input
                 type="tel"
                 value={telepon}
                 onChange={(e) => setTelepon(e.target.value)}
                 placeholder="08xxxxxxxxxx"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#163f73] focus:ring-2 focus:ring-[#163f73]/20 focus:outline-none transition-colors"
+                className={inputClass}
                 required
               />
-            </div>
+            </FormField>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                Alamat Lengkap <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={alamat}
-                onChange={(e) => setAlamat(e.target.value)}
-                placeholder="Jl. ..., Kecamatan, Kota, Provinsi, Kode Pos"
-                rows={3}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#163f73] focus:ring-2 focus:ring-[#163f73]/20 focus:outline-none transition-colors resize-none"
-                required
-              />
+          {/* Total */}
+          <div className="mx-5 mb-4 rounded-xl border border-gray-100 bg-[#f5f8ff] px-4 py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-bold text-[#040404]">Total</span>
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase text-gray-400">IDR</p>
+                <p className="text-[15px] font-extrabold text-[#163f73]">
+                  {formatRupiah(totalAfterDiscount)}
+                </p>
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                Catatan (opsional)
-              </label>
+          {/* Catatan */}
+          <div className="px-5 pb-5">
+            <FormField label="Catatan Khusus (opsional)">
               <textarea
                 value={catatan}
                 onChange={(e) => setCatatan(e.target.value)}
-                placeholder="Warna, ukuran, permintaan khusus..."
-                rows={2}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#163f73] focus:ring-2 focus:ring-[#163f73]/20 focus:outline-none transition-colors resize-none"
+                placeholder="Masukkan catatan khusus tentang pesanan anda"
+                rows={3}
+                className={`${inputClass} resize-none`}
               />
-            </div>
+            </FormField>
+          </div>
+
+          {/* Submit */}
+          <div className="px-5 pb-6">
+            <button
+              type="submit"
+              disabled={!isValid}
+              className="w-full rounded-full bg-[#163f73] py-3.5 text-[14px] font-semibold text-white shadow-md transition-all hover:bg-[#0f2d55] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Kirim form pemesanan
+            </button>
           </div>
         </div>
 
-        {/* Preview pesan */}
-        <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-          <button
-            type="button"
-            onClick={() => setShowPreview(!showPreview)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <h2 className="text-lg font-bold text-[#163f73]">Preview Pesan WhatsApp</h2>
-            {showPreview ? (
-              <EyeOff className="h-5 w-5 text-gray-400" />
-            ) : (
-              <Eye className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
-
-          {showPreview && (
-            <div className="mt-4 rounded-xl bg-[#e5f7e2] p-4 sm:p-5">
-              <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-700 sm:text-sm">
-                {isValid ? buildMessage(previewOrderNumber) : "Lengkapi data di atas untuk melihat preview pesan."}
-              </pre>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Ringkasan kanan */}
-      <div className="lg:col-span-2">
-        <div className="sticky top-24 space-y-4 rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-[#163f73]">Pesanan Anda</h2>
-
-          <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-            {items.map((item) => {
-              const unitPrice = getEffectivePrice(item);
-              return (
-                <div key={item.id_product} className="flex gap-3">
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#a8d4f5] to-[#6bb3e8]">
-                    {item.gambar_url ? (
-                      <Image
-                        src={item.gambar_url}
-                        alt={item.nama_produk}
-                        fill
-                        sizes="56px"
-                        className="object-contain p-1"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-lg">🛍️</div>
-                    )}
-                  </div>
-                  <div className="flex-1 text-sm">
-                    <p className="font-semibold text-[#1a1a1a] line-clamp-1">{item.nama_produk}</p>
-                    <p className="text-xs text-gray-500">
-                      {item.qty} pcs × {formatRupiah(unitPrice)}
-                    </p>
-                    <p className="font-extrabold text-[#163f73]">{formatRupiah(unitPrice * item.qty)}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <hr className="border-gray-100" />
-
-          <div className="flex justify-between text-base">
-            <span className="font-bold text-[#1a1a1a]">Total</span>
-            <span className="text-lg font-extrabold text-[#163f73]">
-              {formatRupiah(totalAfterDiscount)}
-            </span>
-          </div>
-
-          <button
-            type="submit"
-            disabled={!isValid}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-3.5 text-sm font-bold text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:text-base"
-          >
-            <Send className="h-4 w-4" />
-            Kirim Pesanan via WhatsApp
-          </button>
-
+        {/* Back link */}
+        <div className="mt-4 text-center">
           <Link
             href="/keranjang"
-            className="block w-full rounded-2xl border-2 border-[#163f73] py-3 text-center text-sm font-bold text-[#163f73] hover:bg-[#163f73]/5 transition-colors"
+            className="text-[13px] font-semibold text-white/80 hover:text-white transition-colors"
           >
-            Kembali ke Keranjang
+            ← Kembali ke Keranjang
           </Link>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

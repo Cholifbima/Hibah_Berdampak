@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import BestSellingSection from "@/components/BestSellingSection";
@@ -5,14 +8,22 @@ import AIConsultantSection from "@/components/AIConsultantSection";
 import Footer from "@/components/Footer";
 import { fetchBestSelling, type Product } from "@/lib/api";
 
-export default async function Home() {
-  let bestSelling: Product[] = [];
+export default function Home() {
+  const [bestSelling, setBestSelling] = useState<Product[]>([]);
 
-  try {
-    bestSelling = await fetchBestSelling();
-  } catch {
-    // Backend belum menyala — tampilkan halaman tanpa data
-  }
+  useEffect(() => {
+    let cancelled = false;
+    fetchBestSelling()
+      .then((data) => {
+        if (!cancelled) setBestSelling(data);
+      })
+      .catch(() => {
+        if (!cancelled) setBestSelling([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>

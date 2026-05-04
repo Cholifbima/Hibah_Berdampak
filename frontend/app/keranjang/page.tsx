@@ -11,26 +11,34 @@ export default function KeranjangPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1">
-        <section
-          className="pt-20 pb-6 sm:pt-24 sm:pb-8"
+      <main
+        className="flex-1 min-h-screen pt-[72px]"
+        style={{
+          background: "#e9f4ff",
+        }}
+      >
+        {/* Header biru */}
+        <div
+          className="px-4 pb-5 pt-5 sm:px-6"
           style={{
             background:
-              "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(28, 84, 179) 50%, rgb(24, 65, 136) 100%)",
+              "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(22, 63, 115) 100%)",
           }}
         >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <h1 className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
+          <div className="mx-auto max-w-7xl">
+            <h1 className="text-xl font-extrabold text-white sm:text-2xl">
               Keranjang Belanja
             </h1>
+            <p className="mt-0.5 text-sm text-white/70">
+              Periksa produk pilihan Anda sebelum melanjutkan pemesanan.
+            </p>
           </div>
-        </section>
+        </div>
 
-        <section className="bg-[#e9f4ff] py-6 sm:py-8 lg:py-10">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <CartContent />
-          </div>
-        </section>
+        {/* Konten keranjang */}
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+          <CartContent />
+        </div>
       </main>
       <Footer />
     </>

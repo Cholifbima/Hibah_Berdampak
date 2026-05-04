@@ -12,7 +12,7 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
   const hasDiscount = product.discounts.length > 0;
 
   return (
-    <Link href={`/toko/${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
       {/* Gambar produk — background biru konsisten */}
       <div className="relative aspect-square bg-gradient-to-br from-[#a8d4f5] to-[#6bb3e8]">
         {hasImage ? (

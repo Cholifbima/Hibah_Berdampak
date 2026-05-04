@@ -200,7 +200,7 @@ export default function ChatBox({ products }: ChatBoxProps) {
                   {msg.products.map((p) => (
                     <Link
                       key={p.id_product}
-                      href={`/toko/${p.id_product}`}
+                      href={`/toko/detail?id=${p.id_product}`}
                       className="flex gap-2.5 rounded-xl border border-gray-100 bg-white p-2.5 hover:border-[#163f73]/30 hover:shadow-sm transition-all"
                     >
                       <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#a8d4f5] to-[#6bb3e8]">
