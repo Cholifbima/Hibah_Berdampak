@@ -13,12 +13,15 @@ model User {
   id_user      Int      @id @default(autoincrement())
   nama_lengkap String
   username     String   @unique
-  no_whatsapp  String
-  password     String
+  email        String?  @unique
+  no_whatsapp  String   @default("")
+  password     String   @default("")
+  google_id    String?  @unique
   role         String   @default("CUSTOMER")
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
   orders       Order[]
+  cart_items   CartItem[]
 }
 
 model Product {
@@ -33,6 +36,19 @@ model Product {
   updated_at   DateTime       @updatedAt
   discounts    BulkDiscount[]
   order_details OrderDetail[]
+  cart_items    CartItem[]
+}
+
+model CartItem {
+  id_cart_item Int     @id @default(autoincrement())
+  id_user      Int
+  user         User    @relation(fields: [id_user], references: [id_user], onDelete: Cascade)
+  id_product   Int
+  product      Product @relation(fields: [id_product], references: [id_product], onDelete: Cascade)
+  qty          Int
+  updated_at   DateTime @updatedAt
+
+  @@unique([id_user, id_product])
 }
 
 model BulkDiscount {
@@ -50,7 +66,14 @@ model Order {
   kode_pesanan     String        @unique
   total_pembayaran Int
   status_pesanan   String        @default("PENDING")
+  nama_penerima    String        @default("")
+  alamat_pengiriman String       @db.Text
+  no_telepon       String        @default("")
+  catatan          String        @db.Text
+  jenis_pengiriman String?
+  nomor_resi       String?
   tanggal_pesanan  DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
   details          OrderDetail[]
 }
 

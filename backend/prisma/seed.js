@@ -8,13 +8,8 @@ function parseHarga(str) {
   return parseInt(str.replace(/[^0-9]/g, ""), 10);
 }
 
-function parseStok(str) {
-  if (!str) return 0;
-  const match = str.match(/stok\s*:\s*(\d+)/i);
-  if (match) return parseInt(match[1], 10);
-  if (/habis/i.test(str)) return 0;
-  return 0;
-}
+/** Stok seragam 99 (pre-order; tidak menampilkan label pre-order di UI). */
+const DEFAULT_STOK = 99;
 
 function parseKategori(str) {
   if (!str) return "Umum";
@@ -48,7 +43,7 @@ async function main() {
     const nama_produk = item["Nama Produk"];
     const deskripsi = item["Deskripsi"] || "-";
     const harga_satuan = parseHarga(item["Harga"]);
-    const stok = parseStok(item["terjual / Stok"]);
+    const stok = DEFAULT_STOK;
     const kategori = parseKategori(item["Kategori Produk"]);
     const discounts = parseGrosir(item["Grosir"]);
 
