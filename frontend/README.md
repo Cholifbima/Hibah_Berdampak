@@ -1,5 +1,11 @@
-# Frontend (Next.js)
+# Frontend (Next.js SSR)
 
-Jalankan dari folder ini: `npm install` lalu `npm run dev` (port 3000).
+Deployment target: Domainesia CloudLinux NodeJS.
 
-Konfigurasi lingkungan: buat `.env.local` — lihat contoh di **README.md** di root repo (`Hibah_Berdampak/README.md`).
+## Build
+
+```bash
+npm install
+npm run build
+npm run start
+```
