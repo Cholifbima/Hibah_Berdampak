@@ -64,14 +64,14 @@ export default function HeroSection() {
           <div className="relative flex justify-center lg:justify-end">
             {/* Background shape */}
             <div className="absolute inset-0 flex items-center justify-center lg:justify-end">
-              <div className="h-52 w-44 rounded-tl-[80px] rounded-tr-[30px] rounded-bl-[50px] rounded-br-[90px] bg-[#6baed6]/50 sm:h-72 sm:w-60 lg:h-[420px] lg:w-[360px]" />
+              <div className="h-64 w-56 rounded-tl-[80px] rounded-tr-[30px] rounded-bl-[50px] rounded-br-[90px] bg-[#6baed6]/50 sm:h-96 sm:w-80 lg:h-[500px] lg:w-[440px]" />
             </div>
-            <div className="relative z-10 h-56 w-48 sm:h-72 sm:w-60 lg:h-[500px] lg:w-[400px]">
+            <div className="relative z-10 h-72 w-64 sm:h-[420px] sm:w-[340px] lg:h-[600px] lg:w-[480px]">
               <Image
-                src="/assets/decorations/Decoration/model2_nobg-1.png"
+                src="/assets/decorations/Decoration/model web.png"
                 alt="Model Top Production"
                 fill
-                sizes="(max-width: 640px) 192px, (max-width: 1024px) 240px, 400px"
+                sizes="(max-width: 640px) 256px, (max-width: 1024px) 340px, 480px"
                 className="object-contain object-bottom"
                 priority
               />

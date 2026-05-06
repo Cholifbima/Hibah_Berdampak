@@ -3,6 +3,9 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -18,6 +21,31 @@ if (NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 }
 
 app.set('trust proxy', 1);
+
+// ─── Upload folder ──────────────────────────────────────────────────────────
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Serve uploaded files statically at /api/uploads/*
+app.use('/api/uploads', express.static(UPLOADS_DIR));
+
+// Multer storage: preserve extension, unique filename
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = /jpeg|jpg|png|webp|gif/;
+    if (allowed.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Hanya file gambar yang diperbolehkan (jpg, png, webp, gif)'));
+  },
+});
 
 const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
@@ -485,6 +513,22 @@ api.get('/admin/users', adminMiddleware, async (req, res) => {
     console.error('Admin users error:', error);
     res.status(500).json({ error: 'Gagal mengambil data user' });
   }
+});
+
+// ─── Image Upload ────────────────────────────────────────────────────────────
+api.post('/upload-image', authMiddleware, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'File gambar tidak ditemukan' });
+  const baseUrl = process.env.BASE_URL?.replace(/\/$/, '') || `http://localhost:${PORT}`;
+  const fileUrl = `${baseUrl}/api/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl, filename: req.file.filename });
+});
+
+// Error handler untuk multer (ukuran file dll)
+api.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError || err.message?.includes('gambar')) {
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
 });
 
 app.use('/api', api);

@@ -28,31 +28,13 @@ export default function KonsultanPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1">
-        <section
-          className="pt-20 pb-6 sm:pt-24 sm:pb-8"
-          style={{
-            background:
-              "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(28, 84, 179) 50%, rgb(24, 65, 136) 100%)",
-          }}
-        >
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
-            <h1 className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
-              Konsultan AI
-            </h1>
-            <p className="mt-1 text-sm text-white/70">
-              Tanya rekomendasi produk, cek ketersediaan, atau apapun seputar TopAssist
-            </p>
-          </div>
-        </section>
-
-        <section className="bg-[#e9f4ff] py-6 sm:py-8">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6">
+      <main className="flex-1 bg-[#f0f4f8]" style={{ paddingTop: "64px", minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+        <div className="flex flex-1 flex-col mx-auto w-full max-w-3xl px-0 sm:px-4 sm:py-4" style={{ height: "calc(100dvh - 64px)" }}>
+          <div className="flex flex-1 flex-col overflow-hidden sm:rounded-2xl sm:shadow-lg">
             <ChatBox products={activeProducts} />
           </div>
-        </section>
+        </div>
       </main>
-      <Footer />
     </>
   );
 }

@@ -54,7 +54,7 @@ function LoginForm() {
         <div className="flex flex-col items-center">
           <div className="relative h-[100px] w-[100px] sm:h-[120px] sm:w-[120px]">
             <Image
-              src="/assets/icons/IkonHibah/logo_bg_white-small.png"
+              src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
               alt="TopAssist"
               fill
               className="rounded-full object-cover shadow-lg ring-4 ring-white/30"

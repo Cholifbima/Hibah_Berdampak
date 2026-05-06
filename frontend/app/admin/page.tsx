@@ -41,7 +41,7 @@ interface TrenItem {
 }
 
 // ─── Admin Navbar ─────────────────────────────────────────────────────────────
-function AdminHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
+function AdminHeader({ userName, onMenuToggle }: { userName?: string; onMenuToggle: () => void }) {
   return (
     <header
       className="fixed left-0 right-0 top-0 z-[9999] flex h-[68px] items-center justify-between px-4"
@@ -49,16 +49,21 @@ function AdminHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
         background: "linear-gradient(135deg, rgb(22,63,115) 0%, rgb(31,103,223) 100%)",
       }}
     >
-      {/* Logo */}
-      <Link href="/admin" className="flex items-center gap-2">
+      {/* Logo + judul */}
+      <Link href="/admin" className="flex items-center gap-2.5">
         <Image
-          src="/assets/icons/IkonHibah/logo_bg_white-small.png"
+          src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
           alt="TopAssist"
           width={36}
           height={36}
           className="h-9 w-9 rounded-full object-contain p-0.5"
         />
-        <span className="text-[16px] font-extrabold text-white drop-shadow-sm">TopAssist</span>
+        <div>
+          <p className="text-[15px] font-extrabold text-white leading-tight drop-shadow-sm">TopAssist</p>
+          {userName && (
+            <p className="text-[11px] text-white/70 leading-tight">Halo, {userName} 👋</p>
+          )}
+        </div>
       </Link>
 
       {/* Hamburger */}
@@ -217,7 +222,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
-      <AdminHeader onMenuToggle={() => setMenuOpen(true)} />
+      <AdminHeader userName={user?.nama_lengkap?.split(" ")[0]} onMenuToggle={() => setMenuOpen(true)} />
       <SidebarMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -226,19 +231,6 @@ export default function AdminDashboard() {
 
       {/* Page content */}
       <main className="pt-[68px]">
-        {/* Blue page header */}
-        <div
-          className="px-4 pb-5 pt-5"
-          style={{
-            background: "linear-gradient(180deg, rgb(31,103,223) 0%, rgb(22,63,115) 100%)",
-          }}
-        >
-          <h1 className="text-[18px] font-extrabold text-white">Dashboard Admin</h1>
-          <p className="mt-0.5 text-[12px] text-white/70">
-            Selamat datang, {user?.nama_lengkap?.split(" ")[0]} 👋
-          </p>
-        </div>
-
         <div className="mx-auto max-w-2xl space-y-5 px-4 py-5">
           {loading ? (
             <div className="flex justify-center py-16">

@@ -44,7 +44,7 @@ export default function AIConsultantSection() {
         {/* Logo */}
         <div className="mx-auto mt-6 h-20 w-20 sm:h-24 sm:w-24">
           <Image
-            src="/assets/icons/IkonHibah/logo_bg_white-small.png"
+            src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
             alt="TopAssist AI"
             width={153}
             height={150}
