@@ -73,9 +73,9 @@ function SidebarMenu({ open, onClose, onLogout }: { open: boolean; onClose: () =
 
 // ─── Product Form Modal ──────────────────────────────────────────────────────
 function ProductModal({
-  product, token, onClose, onSave,
+  product, token, onClose, onSave, allCategories,
 }: {
-  product: Product | null; token: string; onClose: () => void; onSave: (p: Product) => void;
+  product: Product | null; token: string; onClose: () => void; onSave: (p: Product) => void; allCategories: string[];
 }) {
   const isEdit = !!product;
   const [form, setForm] = useState({
@@ -92,6 +92,7 @@ function ProductModal({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [kategoriMode, setKategoriMode] = useState<"select" | "custom">(product?.kategori && !allCategories.includes(product.kategori) ? "custom" : "select");
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -110,6 +111,7 @@ function ProductModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
+    if (!token) { setErr("Silakan login ulang sebagai admin"); return; }
     setSaving(true);
     try {
       let finalGambarUrl: string | null = gambarUrl || null;
@@ -150,7 +152,11 @@ function ProductModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
-      if (!res.ok) { const d = await res.json(); setErr(d.error || "Gagal menyimpan"); setSaving(false); return; }
+      if (!res.ok) {
+        let errMsg = "Gagal menyimpan";
+        try { const d = await res.json(); errMsg = d.error || errMsg; } catch { errMsg = `Server error (${res.status})`; }
+        setErr(errMsg); setSaving(false); return;
+      }
       const saved = await res.json();
       onSave(saved);
     } catch { setErr("Terjadi kesalahan"); }
@@ -220,7 +226,6 @@ function ProductModal({
 
           {[
             { key: "nama_produk", label: "Nama Produk", placeholder: "Contoh: Tas Ransel A3", required: true },
-            { key: "kategori", label: "Kategori", placeholder: "Contoh: Tas, Konveksi, Aksesoris" },
             { key: "harga_satuan", label: "Harga (Rp)", placeholder: "50000", type: "number", required: true },
             { key: "stok", label: "Stok", placeholder: "10", type: "number", required: true },
           ].map((f) => (
@@ -237,6 +242,50 @@ function ProductModal({
               />
             </div>
           ))}
+          <div>
+            <label className="mb-1 block text-[12px] font-semibold text-gray-600">Kategori</label>
+            {kategoriMode === "select" ? (
+              <>
+                <select
+                  value={form.kategori}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setKategoriMode("custom");
+                      setForm((p) => ({ ...p, kategori: "" }));
+                    } else {
+                      setForm((p) => ({ ...p, kategori: e.target.value }));
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 focus:border-[#163f73] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#163f73]/20"
+                >
+                  <option value="">— Pilih Kategori —</option>
+                  {allCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  <option value="__custom__">+ Tambah Kategori Baru</option>
+                </select>
+              </>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Tulis kategori baru…"
+                  value={form.kategori}
+                  onChange={(e) => setForm((p) => ({ ...p, kategori: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#163f73] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#163f73]/20"
+                />
+                {allCategories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setKategoriMode("select"); setForm((p) => ({ ...p, kategori: "" })); }}
+                    className="shrink-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-[12px] font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+                  >
+                    Pilih
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div>
             <label className="mb-1 block text-[12px] font-semibold text-gray-600">Deskripsi</label>
             <textarea
@@ -399,6 +448,7 @@ export default function AdminProdukPage() {
           token={token!}
           onClose={() => setModal(null)}
           onSave={handleSave}
+          allCategories={Array.from(new Set(products.map((p) => p.kategori).filter(Boolean))).sort()}
         />
       )}
       {deleteTarget && (
