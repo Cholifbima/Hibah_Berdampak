@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, Truck, ShieldCheck, MessageCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Star, Truck, ShieldCheck, MessageCircle, Loader2, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductGallery from "@/components/ProductGallery";
@@ -190,6 +190,50 @@ function ProductDetailInner() {
                 </div>
 
                 <AddToCartButton product={product} />
+
+                {(product.link_shopee || product.link_tokopedia || product.link_lazada) && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Beli juga di</p>
+                    <div className="flex flex-wrap gap-2">
+                      {product.link_shopee && (
+                        <a
+                          href={product.link_shopee}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#EE4D2D] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                        >
+                          <img src="/icons/shopee.svg" alt="Shopee" className="h-4 w-4" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          Shopee
+                          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                        </a>
+                      )}
+                      {product.link_tokopedia && (
+                        <a
+                          href={product.link_tokopedia}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#03AC0E] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                        >
+                          <img src="/icons/tokopedia.svg" alt="Tokopedia" className="h-4 w-4" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          Tokopedia
+                          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                        </a>
+                      )}
+                      {product.link_lazada && (
+                        <a
+                          href={product.link_lazada}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#0F146D] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                        >
+                          <img src="/icons/lazada.svg" alt="Lazada" className="h-4 w-4" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          Lazada
+                          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

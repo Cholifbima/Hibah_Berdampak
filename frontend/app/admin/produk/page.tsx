@@ -20,6 +20,9 @@ interface Product {
   stok: number;
   gambar_url: string | null;
   kategori: string;
+  link_shopee: string | null;
+  link_tokopedia: string | null;
+  link_lazada: string | null;
 }
 
 // ─── Shared Admin UI ────────────────────────────────────────────────────────
@@ -84,6 +87,9 @@ function ProductModal({
     harga_satuan: product ? String(product.harga_satuan) : "",
     stok: product ? String(product.stok) : "",
     kategori: product?.kategori ?? "",
+    link_shopee: product?.link_shopee ?? "",
+    link_tokopedia: product?.link_tokopedia ?? "",
+    link_lazada: product?.link_lazada ?? "",
   });
   // gambar state terpisah
   const [gambarUrl, setGambarUrl] = useState<string>(product?.gambar_url ?? "");
@@ -144,6 +150,9 @@ function ProductModal({
         stok: Number(form.stok),
         gambar_url: finalGambarUrl,
         kategori: form.kategori.trim(),
+        link_shopee: form.link_shopee.trim() || null,
+        link_tokopedia: form.link_tokopedia.trim() || null,
+        link_lazada: form.link_lazada.trim() || null,
       };
       const url = isEdit ? apiUrl(`/products/${product!.id_product}`) : apiUrl("/products");
       const method = isEdit ? "PUT" : "POST";
@@ -285,6 +294,16 @@ function ProductModal({
                 )}
               </div>
             )}
+          </div>
+          <div>
+            <label className="mb-1 block text-[12px] font-semibold text-gray-600">Link Shopee</label>
+            <input
+              type="url"
+              placeholder="https://id.shp.ee/..."
+              value={form.link_shopee}
+              onChange={(e) => setForm((p) => ({ ...p, link_shopee: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#EE4D2D] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#EE4D2D]/20"
+            />
           </div>
           <div>
             <label className="mb-1 block text-[12px] font-semibold text-gray-600">Deskripsi</label>

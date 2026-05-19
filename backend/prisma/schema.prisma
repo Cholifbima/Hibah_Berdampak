@@ -25,18 +25,21 @@ model User {
 }
 
 model Product {
-  id_product   Int            @id @default(autoincrement())
-  nama_produk  String
-  deskripsi    String         @db.Text
-  harga_satuan Int
-  stok         Int
-  kategori     String
-  gambar_url   String?
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
-  discounts    BulkDiscount[]
-  order_details OrderDetail[]
-  cart_items    CartItem[]
+  id_product      Int            @id @default(autoincrement())
+  nama_produk     String
+  deskripsi       String         @db.Text
+  harga_satuan    Int
+  stok            Int
+  kategori        String
+  gambar_url      String?
+  link_shopee     String?
+  link_tokopedia  String?
+  link_lazada     String?
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  discounts       BulkDiscount[]
+  order_details   OrderDetail[]
+  cart_items      CartItem[]
 }
 
 model CartItem {

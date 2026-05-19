@@ -326,7 +326,7 @@ api.get('/products/:id', async (req, res) => {
 // ─── Product CRUD (admin only) ───────────────────────────────────────────────
 api.post('/products', adminMiddleware, async (req, res) => {
   try {
-    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori } = req.body;
+    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori, link_shopee, link_tokopedia, link_lazada } = req.body;
     if (!nama_produk || harga_satuan == null || stok == null) {
       return res.status(400).json({ error: 'Nama produk, harga, dan stok wajib diisi' });
     }
@@ -338,6 +338,9 @@ api.post('/products', adminMiddleware, async (req, res) => {
         stok: Number(stok),
         gambar_url: gambar_url || null,
         kategori: kategori || '',
+        link_shopee: link_shopee || null,
+        link_tokopedia: link_tokopedia || null,
+        link_lazada: link_lazada || null,
       },
       include: { discounts: true },
     });
@@ -354,7 +357,7 @@ api.put('/products/:id', adminMiddleware, async (req, res) => {
     const existing = await prisma.product.findUnique({ where: { id_product: id } });
     if (!existing) return res.status(404).json({ error: 'Produk tidak ditemukan' });
 
-    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori } = req.body;
+    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori, link_shopee, link_tokopedia, link_lazada } = req.body;
     const product = await prisma.product.update({
       where: { id_product: id },
       data: {
@@ -364,6 +367,9 @@ api.put('/products/:id', adminMiddleware, async (req, res) => {
         ...(stok !== undefined && { stok: Number(stok) }),
         ...(gambar_url !== undefined && { gambar_url: gambar_url || null }),
         ...(kategori !== undefined && { kategori }),
+        ...(link_shopee !== undefined && { link_shopee: link_shopee || null }),
+        ...(link_tokopedia !== undefined && { link_tokopedia: link_tokopedia || null }),
+        ...(link_lazada !== undefined && { link_lazada: link_lazada || null }),
       },
       include: { discounts: true },
     });
