@@ -10,6 +10,12 @@ interface ProductCardShopProps {
 export default function ProductCardShop({ product }: ProductCardShopProps) {
   const hasImage = !!product.gambar_url;
   const hasDiscount = product.discounts.length > 0;
+  const lowestGrosir = hasDiscount
+    ? Math.min(...product.discounts.map((d) => d.harga_grosir))
+    : null;
+  const discountPercent = hasDiscount && lowestGrosir
+    ? Math.round(((product.harga_satuan - lowestGrosir) / product.harga_satuan) * 100)
+    : 0;
 
   return (
     <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -52,9 +58,23 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
           {product.nama_produk}
         </h3>
 
-        <p className="mt-1 text-xs font-extrabold text-[#163f73] sm:text-sm">
-          {formatRupiah(product.harga_satuan)}
-        </p>
+        {hasDiscount && (
+          <p className="mt-1 text-[10px] text-gray-400 line-through">
+            {formatRupiah(product.harga_satuan)}
+          </p>
+        )}
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <p className="text-xs font-extrabold text-[#163f73] sm:text-sm">
+            {hasDiscount && lowestGrosir
+              ? formatRupiah(lowestGrosir)
+              : formatRupiah(product.harga_satuan)}
+          </p>
+          {hasDiscount && discountPercent > 0 && (
+            <span className="rounded bg-[#c3dcff] px-1 py-0.5 text-[9px] font-extrabold text-[#163f73]">
+              -{discountPercent}%
+            </span>
+          )}
+        </div>
 
         <div className="mt-1.5 flex items-center gap-1">
           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, Truck, ShieldCheck, MessageCircle, Loader2, ExternalLink } from "lucide-react";
+import { Star, Truck, ShieldCheck, MessageCircle, Loader2, ExternalLink, ChevronLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductGallery from "@/components/ProductGallery";
@@ -78,6 +78,12 @@ function ProductDetailInner() {
 
   const gallery = getProductGallery(product.gambar_url);
   const hasDiscount = product.discounts.length > 0;
+  const lowestGrosir = hasDiscount
+    ? Math.min(...product.discounts.map((d) => d.harga_grosir))
+    : null;
+  const discountPercent = hasDiscount && lowestGrosir
+    ? Math.round(((product.harga_satuan - lowestGrosir) / product.harga_satuan) * 100)
+    : 0;
   const paragraphs = product.deskripsi
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -87,26 +93,15 @@ function ProductDetailInner() {
     <>
       <Navbar />
       <main className="min-w-0 flex-1 overflow-x-hidden">
-        <section
-          className="pt-20 pb-4 sm:pt-24 sm:pb-6"
-          style={{
-            background:
-              "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(28, 84, 179) 50%, rgb(24, 65, 136) 100%)",
-          }}
-        >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <section className="bg-[#e9f4ff] pt-24 pb-6 sm:pt-32 sm:pb-10 lg:pt-36 lg:pb-12">
+          <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6">
             <Link
               href="/toko"
-              className="inline-flex items-center gap-1.5 rounded-xl text-sm font-medium text-white/80 hover:text-white transition-colors"
+              className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-[#163f73]/70 hover:text-[#163f73] transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Toko
+              <ChevronLeft className="h-4 w-4" />
+              Kembali
             </Link>
-          </div>
-        </section>
-
-        <section className="bg-[#e9f4ff] py-6 sm:py-8 lg:py-10">
-          <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6">
             <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
               <div className="min-w-0 max-w-full">
                 {gallery.length > 0 ? (
@@ -146,9 +141,18 @@ function ProductDetailInner() {
                       {formatRupiah(product.harga_satuan)}
                     </p>
                   )}
-                  <p className="text-2xl font-extrabold text-[#163f73] sm:text-3xl">
-                    {formatRupiah(product.harga_satuan)}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-2xl font-extrabold text-[#163f73] sm:text-3xl">
+                      {hasDiscount && lowestGrosir
+                        ? formatRupiah(lowestGrosir)
+                        : formatRupiah(product.harga_satuan)}
+                    </p>
+                    {hasDiscount && discountPercent > 0 && (
+                      <span className="rounded-lg bg-[#c3dcff] px-2 py-0.5 text-xs font-extrabold text-[#163f73] sm:text-sm">
+                        -{discountPercent}%
+                      </span>
+                    )}
+                  </div>
 
                   {hasDiscount && (
                     <div className="mt-4">
@@ -183,17 +187,22 @@ function ProductDetailInner() {
                     <ShieldCheck className="h-5 w-5 text-[#163f73]" />
                     <span className="text-[10px] font-medium text-gray-600 sm:text-xs">Kualitas Terjamin</span>
                   </div>
-                  <div className="flex flex-col items-center gap-1.5 rounded-xl bg-white p-3 text-center shadow-sm">
-                    <MessageCircle className="h-5 w-5 text-[#163f73]" />
+                  <a
+                    href={`https://wa.me/628157799036?text=${encodeURIComponent(`Halo, saya ingin bertanya tentang produk: ${product.nama_produk}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-1.5 rounded-xl bg-white p-3 text-center shadow-sm hover:bg-green-50 transition-colors"
+                  >
+                    <MessageCircle className="h-5 w-5 text-[#25D366]" />
                     <span className="text-[10px] font-medium text-gray-600 sm:text-xs">Chat Penjual</span>
-                  </div>
+                  </a>
                 </div>
 
                 <AddToCartButton product={product} />
 
                 {(product.link_shopee || product.link_tokopedia || product.link_lazada) && (
                   <div className="mt-4">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Beli juga di</p>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Beli di e-commerce lain</p>
                     <div className="flex flex-wrap gap-2">
                       {product.link_shopee && (
                         <a
@@ -202,9 +211,11 @@ function ProductDetailInner() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-xl bg-[#EE4D2D] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                         >
-                          <img src="/icons/shopee.svg" alt="Shopee" className="h-4 w-4" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-white p-0.5">
+                            <img src="/assets/icons/IkonHibah/shoope.png" alt="" className="h-full w-full object-contain" />
+                          </span>
                           Shopee
-                          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                          <ExternalLink className="h-3 w-3 opacity-80" />
                         </a>
                       )}
                       {product.link_tokopedia && (
@@ -214,9 +225,9 @@ function ProductDetailInner() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-xl bg-[#03AC0E] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                         >
-                          <img src="/icons/tokopedia.svg" alt="Tokopedia" className="h-4 w-4" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          <img src="https://logo.clearbit.com/tokopedia.com" alt="" className="h-5 w-5 rounded-sm object-contain" />
                           Tokopedia
-                          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                          <ExternalLink className="h-3 w-3 opacity-80" />
                         </a>
                       )}
                       {product.link_lazada && (
@@ -224,11 +235,11 @@ function ProductDetailInner() {
                           href={product.link_lazada}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#0F146D] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#F57224] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                         >
-                          <img src="/icons/lazada.svg" alt="Lazada" className="h-4 w-4" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          <img src="https://logo.clearbit.com/lazada.co.id" alt="" className="h-5 w-5 rounded-sm object-contain" />
                           Lazada
-                          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                          <ExternalLink className="h-3 w-3 opacity-80" />
                         </a>
                       )}
                     </div>
