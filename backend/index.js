@@ -583,7 +583,8 @@ api.get('/admin/users', adminMiddleware, async (req, res) => {
 // ─── Image Upload ────────────────────────────────────────────────────────────
 api.post('/upload-image', authMiddleware, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'File gambar tidak ditemukan' });
-  const baseUrl = process.env.BASE_URL?.replace(/\/$/, '') || `http://localhost:${PORT}`;
+  const baseUrl = process.env.BASE_URL?.replace(/\/$/, '')
+    || `${req.protocol}://${req.get('host')}`;
   const fileUrl = `${baseUrl}/api/uploads/${req.file.filename}`;
   res.json({ url: fileUrl, filename: req.file.filename });
 });
