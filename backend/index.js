@@ -18,6 +18,46 @@ const OpenAI = require('openai').default;
 
 require('dotenv').config();
 
+// Simple rate limiting untuk API
+const requestCounts = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 menit
+const RATE_LIMIT_MAX = 30; // 30 request per menit per IP
+
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  
+  if (!requestCounts.has(ip)) {
+    requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return next();
+  }
+  
+  const data = requestCounts.get(ip);
+  
+  if (now > data.resetTime) {
+    data.count = 1;
+    data.resetTime = now + RATE_LIMIT_WINDOW;
+    return next();
+  }
+  
+  if (data.count >= RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: 'Terlalu banyak request. Coba lagi nanti.' });
+  }
+  
+  data.count++;
+  next();
+}
+
+// Bersihkan rate limit setiap 10 menit
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of requestCounts) {
+    if (now > data.resetTime) {
+      requestCounts.delete(ip);
+    }
+  }
+}, 10 * 60 * 1000);
+
 
 
 const app = express();

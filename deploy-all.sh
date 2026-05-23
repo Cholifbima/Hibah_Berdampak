@@ -27,7 +27,8 @@ source ~/nodevenv/repositories/Hibah_Berdampak/backend/24/bin/activate
 cd $ROOT/backend || exit
 
 echo "install backend deps"
-npm install || true
+rm -rf node_modules package-lock.json
+~/nodevenv/repositories/Hibah_Berdampak/backend/24/bin/npm install || true
 
 echo "prisma generate..."
 npx prisma generate --schema=./prisma/schema.prisma
