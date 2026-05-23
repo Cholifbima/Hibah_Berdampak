@@ -191,11 +191,19 @@ export default function ProfilPage() {
             <div className="flex flex-col items-center">
               <div className="relative group">
                 <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full overflow-hidden ring-4 ring-white shadow-lg bg-gradient-to-br from-[#e8f4ff] to-[#f0f9ff]">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                  {(avatarPreview?.includes("/") || user?.avatar_url?.includes("/")) ? (
+                    <img 
+                      src={avatarPreview || user?.avatar_url} 
+                      alt="Avatar" 
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        e.currentTarget.parentElement?.querySelector('.avatar-fallback')?.classList.remove('hidden');
+                      }}
+                    />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <User className="h-14 w-14 text-[#163f73]/20" />
+                    <div className="avatar-fallback flex h-full w-full items-center justify-center">
+                      <User className="h-14 w-14 text-[#163f73]/40" />
                     </div>
                   )}
                 </div>

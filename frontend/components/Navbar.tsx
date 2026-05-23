@@ -85,10 +85,15 @@ export default function Navbar() {
                       src={user.avatar_url} 
                       alt={user.nama_lengkap} 
                       className="h-7 w-7 rounded-full object-cover ring-2 ring-white/30"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        e.currentTarget.parentElement?.querySelector('.avatar-fallback')?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
+                  ) : null}
+                  <div className={`avatar-fallback ${user.avatar_url ? 'hidden' : ''}`}>
                     <UserCircle className="h-6 w-6" />
-                  )}
+                  </div>
                   <span className="max-w-[100px] truncate">{user.nama_lengkap.split(" ")[0]}</span>
                 </Link>
                 <button
