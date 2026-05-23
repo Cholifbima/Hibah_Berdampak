@@ -52,7 +52,7 @@ async function updateProducts() {
       const grosirString = item['Grosir'];
       
       // Find product by name
-      const product = await prisma.produk.findFirst({
+      const product = await prisma.product.findFirst({
         where: { nama_produk: namaProduk }
       });
       
@@ -69,11 +69,11 @@ async function updateProducts() {
       const hargaAsli = calculateHargaAsli(hargaDiskon);
       
       // Update product
-      await prisma.produk.update({
-        where: { id_produk: product.id_produk },
+      await prisma.product.update({
+        where: { id_product: product.id_product },
         data: {
           rating: Math.round(rating),
-          harga: hargaDiskon,
+          harga_satuan: hargaDiskon,
           harga_asli: hargaAsli,
           harga_grosir: hargaGrosir,
           min_grosir: minQty,
@@ -81,7 +81,7 @@ async function updateProducts() {
         }
       });
       
-      console.log(`✅ Updated: ${namaProduk} | Rating: ${rating}⭐ | Harga: ${hargaAsli.toLocaleString()} → ${hargaDiskon.toLocaleString()} (-${Math.round((1 - hargaDiskon/hargaAsli) * 100)}%) | Grosir: ${minQty}+ @ ${hargaGrosir?.toLocaleString() || '-'}`);
+      console.log(`✅ Updated: ${namaProduk} | ID: ${product.id_product} | Rating: ${rating}⭐ | Harga: ${hargaAsli.toLocaleString()} → ${hargaDiskon.toLocaleString()} (-${Math.round((1 - hargaDiskon/hargaAsli) * 100)}%) | Grosir: ${minQty}+ @ ${hargaGrosir?.toLocaleString() || '-'}`);
       updated++;
     }
     
