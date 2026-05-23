@@ -9,13 +9,12 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const hasDiscount = product.discounts.length > 0;
+  const hasGrosir = product.harga_grosir && product.harga_grosir > 0;
+  const hasDiskon = product.diskon_persen && product.diskon_persen > 0;
   const thumbnail = getProductThumbnail(product.gambar_url);
   const hasImage = !!thumbnail;
 
-  const discountPercent = hasDiscount
-    ? Math.round(((product.harga_satuan - product.discounts[0].harga_grosir) / product.harga_satuan) * 100)
-    : 0;
+  const discountPercent = product.diskon_persen ?? 0;
 
   return (
     <Link
@@ -33,7 +32,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Discount badge top right */}
-      {hasDiscount && discountPercent > 0 && product.stok > 0 && (
+      {hasDiskon && discountPercent > 0 && product.stok > 0 && (
         <div className="absolute top-2.5 right-2.5 z-10">
           <div className="rounded-lg bg-red-500 px-2 py-1 shadow-md">
             <span className="text-[9px] font-extrabold text-white sm:text-[10px]">-{discountPercent}%</span>
@@ -77,23 +76,21 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Harga */}
         <div className="mt-2">
-          {hasDiscount && (
+          {hasDiskon && product.harga_asli && (
             <p className="text-[10px] text-gray-400 line-through sm:text-[11px]">
-              {formatRupiah(product.harga_satuan)}
+              {formatRupiah(product.harga_asli)}
             </p>
           )}
           <p className="text-sm font-extrabold text-[#163f73] sm:text-base">
-            {hasDiscount
-              ? formatRupiah(product.discounts[0].harga_grosir)
-              : formatRupiah(product.harga_satuan)}
+            {formatRupiah(product.harga_satuan)}
           </p>
         </div>
 
         {/* Grosir info strip */}
-        {hasDiscount && (
+        {hasGrosir && product.min_grosir && (
           <div className="mt-1.5 rounded-lg border border-[#c3dcff] bg-[#eef6ff] px-2 py-1">
             <p className="text-[9px] font-bold text-[#163f73] sm:text-[10px]">
-              🏷️ Grosir ≥{product.discounts[0].min_qty} pcs · {formatRupiah(product.discounts[0].harga_grosir)}/pcs
+              🏷️ Grosir ≥{product.min_grosir} pcs · {formatRupiah(product.harga_grosir ?? 0)}/pcs
             </p>
           </div>
         )}

@@ -32,6 +32,10 @@ export interface Product {
   nama_produk: string;
   deskripsi: string;
   harga_satuan: number;
+  harga_asli: number | null;
+  diskon_persen: number | null;
+  harga_grosir: number | null;
+  min_grosir: number | null;
   stok: number;
   kategori: string;
   gambar_url: string | null;
