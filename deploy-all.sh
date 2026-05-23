@@ -12,12 +12,23 @@ source ~/nodevenv/repositories/Hibah_Berdampak/frontend/24/bin/activate
 
 cd $ROOT/frontend || exit
 
+echo "kill zombie node processes"
+pkill -9 -f "next" 2>/dev/null || true
+pkill -9 -f "node" 2>/dev/null || true
+sleep 2
+
 echo "install frontend deps"
 npm install --include=dev
 
+echo "clear cache"
+rm -rf .next dist node_modules/.cache
+
 echo "build frontend"
-rm -rf .next
 npm run build
+
+echo "copy to public_html"
+rm -rf ~/public_html/*
+cp -r dist/* ~/public_html/
 
 echo ""
 echo "backend"
