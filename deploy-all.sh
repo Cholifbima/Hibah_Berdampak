@@ -1,60 +1,43 @@
 #!/bin/bash
 
-echo "🚀 deploy started"
+echo "deploy started"
 
 ROOT=~/repositories/Hibah_Berdampak
 
-########################################
-# FRONTEND
-########################################
 
 echo ""
-echo "🎨 frontend"
+echo "frontend"
 
 source ~/nodevenv/repositories/Hibah_Berdampak/frontend/24/bin/activate
 
 cd $ROOT/frontend || exit
 
-echo "🧹 clean frontend"
-rm -rf .next
-
-echo "📦 install frontend deps"
+echo "install frontend deps"
 npm install --include=dev
 
-echo "🏗 build frontend"
+echo "build frontend"
+rm -rf .next dist
 npm run build
 
-########################################
-# BACKEND
-########################################
+echo "copy to public_html"
+rm -rf ~/public_html/*
+cp -r dist/* ~/public_html/
 
 echo ""
-echo "⚙️ backend"
-
-source ~/nodevenv/repositories/Hibah_Berdampak/backend/24/bin/activate
+echo "backend"
 
 cd $ROOT/backend || exit
 
-echo "📦 install backend deps"
-npm install --include=dev
+echo "install backend deps"
+npm install || true
 
-echo "🧠 prisma generate"
+echo "prisma generate..."
 npx prisma generate --schema=./prisma/schema.prisma
 
-########################################
-# RESTART APPS
-########################################
-
 echo ""
-echo "🔄 restart apps"
-
-mkdir -p ~/tmp
+echo "restart apps"
 
 touch ~/tmp/restart.txt
 
-########################################
-# DONE
-########################################
-
 echo ""
-echo "✅ deploy done"
+echo "deploy done"
