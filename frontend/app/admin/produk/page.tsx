@@ -17,6 +17,11 @@ interface Product {
   nama_produk: string;
   deskripsi: string;
   harga_satuan: number;
+  harga_asli: number | null;
+  diskon_persen: number | null;
+  harga_grosir: number | null;
+  min_grosir: number | null;
+  rating: number;
   stok: number;
   gambar_url: string | null;
   kategori: string;
@@ -85,6 +90,11 @@ function ProductModal({
     nama_produk: product?.nama_produk ?? "",
     deskripsi: product?.deskripsi ?? "",
     harga_satuan: product ? String(product.harga_satuan) : "",
+    harga_asli: product?.harga_asli ? String(product.harga_asli) : "",
+    diskon_persen: product?.diskon_persen ? String(product.diskon_persen) : "",
+    harga_grosir: product?.harga_grosir ? String(product.harga_grosir) : "",
+    min_grosir: product?.min_grosir ? String(product.min_grosir) : "",
+    rating: product?.rating ? String(product.rating) : "",
     stok: product ? String(product.stok) : "",
     kategori: product?.kategori ?? "",
     link_shopee: product?.link_shopee ?? "",
@@ -265,7 +275,12 @@ function ProductModal({
 
           {[
             { key: "nama_produk", label: "Nama Produk", placeholder: "Contoh: Tas Ransel A3", required: true },
-            { key: "harga_satuan", label: "Harga (Rp)", placeholder: "50000", type: "number", required: true },
+            { key: "harga_satuan", label: "Harga Diskon/Real (Rp)", placeholder: "50000", type: "number", required: true },
+            { key: "harga_asli", label: "Harga Asli (Tipuan/Dicoret)", placeholder: "70000", type: "number", required: false },
+            { key: "diskon_persen", label: "Diskon %", placeholder: "29", type: "number", required: false },
+            { key: "harga_grosir", label: "Harga Grosir (Rp)", placeholder: "45000", type: "number", required: false },
+            { key: "min_grosir", label: "Min. Grosir (pcs)", placeholder: "10", type: "number", required: false },
+            { key: "rating", label: "Rating (0-5)", placeholder: "4.8", type: "number", required: false },
             { key: "stok", label: "Stok", placeholder: "10", type: "number", required: true },
           ].map((f) => (
             <div key={f.key}>
@@ -277,6 +292,8 @@ function ProductModal({
                 value={form[f.key as keyof typeof form]}
                 onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
                 min={f.type === "number" ? "0" : undefined}
+                max={f.key === "rating" ? "5" : f.key === "diskon_persen" ? "100" : undefined}
+                step={f.key === "rating" ? "0.1" : f.type === "number" ? "1" : undefined}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#163f73] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#163f73]/20"
               />
             </div>
