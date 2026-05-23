@@ -1508,12 +1508,14 @@ api.use((err, req, res, next) => {
 
 
 
+// Health check for Passenger
+app.get('/', (req, res) => {
+  res.json({ ok: true, service: 'topassist-api', env: NODE_ENV });
+});
+
 app.use('/api', api);
 
-
-
 app.use((req, res) => {
-
   res.status(404).json({ error: 'Not found', path: req.originalUrl });
 
 });
@@ -1532,9 +1534,13 @@ app.use((err, req, res, next) => {
 
 
 
-app.listen(PORT, () => {
+// Export for Passenger (Node.js Selector)
+module.exports = app;
 
-  console.log(`[topassist] API listening on port ${PORT} (${NODE_ENV})`);
-
-});
+// Only listen directly if not running under Passenger (development)
+if (!process.env.PASSENGER_APP_GROUP_NAME) {
+  app.listen(PORT, () => {
+    console.log(`[topassist] API listening on port ${PORT} (${NODE_ENV})`);
+  });
+}
 
