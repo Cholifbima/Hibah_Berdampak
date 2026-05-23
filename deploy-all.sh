@@ -16,15 +16,13 @@ echo "install frontend deps"
 npm install --include=dev
 
 echo "build frontend"
-rm -rf .next dist
+rm -rf .next
 npm run build
-
-echo "copy to public_html"
-rm -rf ~/public_html/*
-cp -r dist/* ~/public_html/
 
 echo ""
 echo "backend"
+
+source ~/nodevenv/repositories/Hibah_Berdampak/backend/24/bin/activate
 
 cd $ROOT/backend || exit
 
@@ -37,7 +35,15 @@ npx prisma generate --schema=./prisma/schema.prisma
 echo ""
 echo "restart apps"
 
+mkdir -p ~/tmp
+
+# Restart backend
 touch ~/tmp/restart.txt
+
+# Restart frontend (Node.js Selector - kill process to auto-restart)
+pkill -f "next-server" 2>/dev/null || true
 
 echo ""
 echo "deploy done"
+echo ""
+echo "Note: Frontend akan auto-restart oleh Passenger dalam 1-2 menit"
