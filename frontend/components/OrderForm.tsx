@@ -12,7 +12,7 @@ import Link from "next/link";
 
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
-const WA_NUMBER = "62895386224772";
+const WA_NUMBER = "628157799036";
 const ORDER_COUNTER_KEY = "topassist_order_counter";
 
 function getNextOrderNumber(): string {

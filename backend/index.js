@@ -160,6 +160,45 @@ function authMiddleware(req, res, next) {
 
 }
 
+// Verify Cloudflare Turnstile token
+async function verifyTurnstile(token) {
+  if (!token) return false;
+  
+  // Development mode bypass
+  if (token === "dev-mode-token") {
+    console.log("[Turnstile] Development mode - bypass verification");
+    return true;
+  }
+  
+  try {
+    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+    if (!secretKey) {
+      // Skip verification if no secret key configured (development)
+      console.log("[Turnstile] No secret key - skip verification");
+      return true;
+    }
+    
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: secretKey,
+        response: token,
+      }),
+    });
+    const data = await response.json();
+    
+    if (!data.success) {
+      console.log("[Turnstile] Verification failed:", data);
+    }
+    
+    return data.success === true;
+  } catch (error) {
+    console.error('Turnstile verification error:', error);
+    return false;
+  }
+}
+
 
 
 // Root health (Passenger / uptime checks)
@@ -179,13 +218,16 @@ app.get('/', (req, res) => {
 api.post('/auth/register', async (req, res) => {
 
   try {
-
-    const { nama_lengkap, username, email, no_whatsapp, password } = req.body;
+    const { nama_lengkap, username, email, no_whatsapp, password, turnstile_token } = req.body;
 
     if (!nama_lengkap || !username || !password) {
-
       return res.status(400).json({ error: 'Nama, username, dan password wajib diisi' });
+    }
 
+    // Verify Turnstile token (skip if no secret key configured)
+    const turnstileValid = await verifyTurnstile(turnstile_token);
+    if (!turnstileValid) {
+      return res.status(400).json({ error: 'Verifikasi keamanan gagal. Silakan refresh halaman dan coba lagi.' });
     }
 
     const existing = await prisma.user.findFirst({
@@ -199,11 +241,8 @@ api.post('/auth/register', async (req, res) => {
 
 
     const hashed = await bcrypt.hash(password, 10);
-
     const user = await prisma.user.create({
-
       data: { nama_lengkap, username, email: email || null, no_whatsapp: no_whatsapp || '', password: hashed },
-
     });
 
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
@@ -1294,7 +1333,7 @@ api.post('/chat', async (req, res) => {
         });
         reply += `Mau tanya detail produk tertentu? Langsung klik aja produknya! 😉`;
       } else {
-        reply = `Hai! 👋 Saya bisa bantu kamu cari produk tas dari TopAssist.\n\nKami punya **${products.length} produk** siap kirim!\n\nCoba tanyakan:\n• "tas pancing"\n• "tas olahraga"\n• "produk murah"\n• "promo grosir"\n\nAtau sebutkan kebutuhan kamu, nanti saya carikan yang cocok! 😊`;
+        reply = `Maaf, saya tidak menemukan produk yang cocok dengan "${lastUserMessage}".\n\nKami punya **${products.length} produk** siap kirim!\n\nCoba tanyakan:\n• "tas pancing"\n• "tas olahraga"\n• "produk murah"\n• "promo grosir"\n\nAtau chat WhatsApp untuk custom order! 😊`;
       }
 
       return res.json({ reply, products: matchedProducts });
@@ -1345,33 +1384,29 @@ api.post('/chat', async (req, res) => {
 
 
 
-    const systemPrompt = `Kamu adalah Konsultan AI untuk toko TopAssist, spesialis tas berkualitas (tas pancing, tas olahraga, tas hewan, dll).
+    const systemPrompt = `Kamu adalah Konsultan AI untuk toko TopAssist, spesialis tas berkualitas.
 
-Tugasmu membantu pelanggan menemukan produk yang tepat dari katalog kami.
-
-
-
-KATALOG PRODUK TERSEDIA:
-
+KATALOG PRODUK:
 ${catalog}
 
+ATURAN WAJIB:
+1. Jawab dalam Bahasa Indonesia ramah
+2. Rekomendasikan 2-4 produk RELEVAN saja
+3. Format setiap produk di BARIS BARU dengan nomor: 
+   1. [ID:123] **Nama Produk** - Harga: **Rp50.000** (jika grosir: Grosir 10pcs = **Rp45.000**)
+   2. [ID:124] **Nama Produk** - Harga: **Rp60.000**
+4. Setiap produk WAJIB pakai [ID:xxx] agar bisa diklik
+5. Setelah list produk, beri jarak 1 baris kosong lalu closing
+6. Contoh format:
+   Berikut rekomendasi:
+   
+   1. [ID:1] **Tas Pancing** - Harga: **Rp80.000** (Grosir: **Rp67.500**)
+   2. [ID:2] **Tas Olahraga** - Harga: **Rp50.000**
+   
+   Semoga membantu! Ada pertanyaan lain?
+7. Jika tidak cocok: "Maaf, saya tidak menemukan produk yang cocok. Coba kata kunci lain?"
+8. Maksimal 150 kata`;
 
-
-ATURAN PENTING:
-
-1. Jawab dalam Bahasa Indonesia yang ramah dan natural (bukan kaku)
-
-2. Rekomendasikan 2-4 produk maksimal yang paling relevan
-
-3. Saat menyebut produk, SELALU sertakan [ID:xxx] persis seperti di katalog agar sistem bisa menampilkan kartunya
-
-4. Sebutkan harga dan diskon grosir jika ada dan relevan
-
-5. Jika tidak ada produk yang cocok, sarankan kata kunci lain
-
-6. Tetap fokus pada topik produk toko TopAssist
-
-7. Jawaban singkat dan langsung ke poin (maks 150 kata)`;
 
 
 

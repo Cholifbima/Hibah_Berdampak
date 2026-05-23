@@ -190,8 +190,21 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
                   <span>{msg.content}</span>
                 </div>
               ) : msg.role === "assistant" ? (
-                <div className="rounded-2xl rounded-tl-sm bg-white px-5 py-4 text-sm leading-relaxed shadow-md border border-gray-100">
-                  <p className="text-gray-700 whitespace-pre-line">{msg.content}</p>
+                <div className="rounded-2xl rounded-tl-sm bg-white px-5 py-4 text-sm leading-relaxed shadow-md border border-gray-100 max-w-[92%] sm:max-w-[88%]">
+                  <div 
+                    className="text-gray-700 chat-content"
+                    style={{ 
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: msg.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#163f73] font-semibold">$1</strong>')
+                        .replace(/(\d+\.\s)/g, '<br/><span class="font-bold text-[#163f73] mr-1">$1</span>')
+                        .replace(/\n/g, '<br/>')
+                        .replace(/<br\/><br\/>/g, '</p><p class="mt-2">')
+                    }}
+                  />
                 </div>
               ) : (
                 <div className="rounded-2xl rounded-tr-sm bg-gradient-to-br from-[#163f73] to-[#1e4f8f] px-5 py-4 text-sm leading-relaxed shadow-md">
@@ -235,7 +248,15 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
               )}
 
               {/* No products match - WhatsApp Custom Order */}
-              {msg.role === "assistant" && (!msg.products || msg.products.length === 0) && (
+              {msg.role === "assistant" && 
+               !msg.products?.length && 
+               !isLoading &&
+               (msg.content.toLowerCase().includes('tidak ada') || 
+                msg.content.toLowerCase().includes('tidak menemukan') ||
+                msg.content.toLowerCase().includes('tidak punya') ||
+                msg.content.toLowerCase().includes('tidak memiliki') ||
+                msg.content.toLowerCase().includes('belum ada') ||
+                (msg.content.toLowerCase().includes('maaf') && msg.content.toLowerCase().includes('cocok'))) && (
                 <div className="mt-2">
                   <a
                     href={`https://wa.me/628157799036?text=${encodeURIComponent('Halo, saya ingin custom order atau tanya produk tertentu')}`}
@@ -250,39 +271,40 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
                 </div>
               )}
 
-              {/* Typing indicator */}
-              {isLoading && (
-                <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#163f73] to-[#1e4f8f] p-0.5 shadow-md">
-                    <div className="h-full w-full rounded-[10px] bg-white flex items-center justify-center">
-                      <Image
-                        src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
-                        alt="AI"
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 rounded-lg object-cover"
-                      />
-                    </div>
-                  </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-white px-5 py-4 shadow-md border border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Sedang mengetik</span>
-                      <div className="flex items-center gap-1">
-                        {[0, 150, 300].map((delay) => (
-                          <span
-                            key={delay}
-                            className="h-1.5 w-1.5 rounded-full bg-[#163f73] animate-bounce"
-                            style={{ animationDelay: `${delay}ms` }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         ))}
+
+        {/* Typing indicator - OUTSIDE messages loop */}
+        {isLoading && (
+          <div className="flex items-start gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#163f73] to-[#1e4f8f] p-0.5 shadow-md">
+              <div className="h-full w-full rounded-[10px] bg-white flex items-center justify-center">
+                <Image
+                  src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
+                  alt="AI"
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 rounded-lg object-cover"
+                />
+              </div>
+            </div>
+            <div className="rounded-2xl rounded-tl-sm bg-white px-5 py-4 shadow-md border border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Sedang mengetik</span>
+                <div className="flex items-center gap-1">
+                  {[0, 150, 300].map((delay) => (
+                    <span
+                      key={delay}
+                      className="h-1.5 w-1.5 rounded-full bg-[#163f73] animate-bounce"
+                      style={{ animationDelay: `${delay}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Suggestions */}
         {messages.length <= 1 && !isLoading && (

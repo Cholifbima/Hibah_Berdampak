@@ -161,16 +161,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
 
-  const register = useCallback(async (formData: { nama_lengkap: string; username: string; email?: string; no_whatsapp?: string; password: string }) => {
-
+  const register = useCallback(async (formData: { nama_lengkap: string; username: string; email?: string; no_whatsapp?: string; password: string; turnstile_token?: string }) => {
     const res = await fetch(apiUrl("/auth/register"), {
-
       method: "POST",
-
       headers: { "Content-Type": "application/json" },
-
       body: JSON.stringify(formData),
-
     });
 
     const data = await res.json();
@@ -204,11 +199,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleAuthResponse]);
 
   const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
-    const t = loadToken();
-    if (!t) throw new Error("Tidak ada token");
+    if (!token) throw new Error("Tidak ada token");
     const res = await fetch(apiUrl("/users/me"), {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
     const json = await res.json();
@@ -225,9 +219,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       avatar_url: json.avatar_url,
       role: json.role,
     };
-    saveSession(t, updated);
+    saveSession(token, updated);
     setUser(updated);
-  }, []);
+  }, [token]);
 
   const logout = useCallback(() => {
     clearSession();

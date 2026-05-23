@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"app\\\\profil\\\\page.tsx -> @/components/MapPicker\":{\"id\":\"app\\\\profil\\\\page.tsx -> @/components/MapPicker\",\"files\":[\"static/css/_app-pages-browser_components_MapPicker_tsx.css\",\"static/chunks/_app-pages-browser_components_MapPicker_tsx.js\"]}}"

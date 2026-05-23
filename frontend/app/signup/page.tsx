@@ -4,10 +4,11 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import AuthUnderlineField from "@/components/auth/AuthUnderlineField";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 
 const BG =
   "linear-gradient(180deg, rgb(31, 103, 223) 0%, rgb(28, 84, 179) 42%, rgb(22, 58, 120) 100%)";
@@ -33,6 +34,7 @@ function SignupForm() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +48,10 @@ function SignupForm() {
       setError("Password minimal 6 karakter");
       return;
     }
+    if (!turnstileToken) {
+      setError("Silakan verifikasi bahwa Anda bukan robot");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -55,6 +61,7 @@ function SignupForm() {
         email: email || undefined,
         no_whatsapp: noWhatsapp || undefined,
         password,
+        turnstile_token: turnstileToken,
       });
       router.push(afterLogin);
     } catch (err) {
@@ -184,9 +191,21 @@ function SignupForm() {
             </div>
           </div>
 
+          {/* Bot Verification */}
+          <div className="mt-4 rounded-2xl border border-white/20 bg-white/10 p-4">
+            <div className="mb-3 flex items-center gap-2 text-xs text-white/80">
+              <Shield className="h-4 w-4" />
+              <span>Verifikasi Keamanan</span>
+            </div>
+            <TurnstileWidget
+              onVerify={setTurnstileToken}
+              onError={() => setError("Gagal verifikasi. Coba refresh halaman.")}
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !turnstileToken}
             className="mt-1 w-full rounded-full bg-white py-3.5 text-center text-base font-bold text-[#0031fd] shadow-md transition hover:bg-white/95 disabled:opacity-60"
           >
             {loading ? "Memproses…" : "Sign Up"}
