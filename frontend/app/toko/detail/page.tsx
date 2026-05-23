@@ -77,13 +77,10 @@ function ProductDetailInner() {
   }
 
   const gallery = getProductGallery(product.gambar_url);
-  const hasDiscount = product.discounts.length > 0;
-  const lowestGrosir = hasDiscount
-    ? Math.min(...product.discounts.map((d) => d.harga_grosir))
-    : null;
-  const discountPercent = hasDiscount && lowestGrosir
-    ? Math.round(((product.harga_satuan - lowestGrosir) / product.harga_satuan) * 100)
-    : 0;
+  // 3-tier pricing from database
+  const hasDiscount = product.diskon_persen && product.diskon_persen > 0;
+  const discountPercent = product.diskon_persen ?? 0;
+  const hasGrosir = product.harga_grosir && product.min_grosir;
   const paragraphs = product.deskripsi
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -136,16 +133,17 @@ function ProductDetailInner() {
                 </div>
 
                 <div className="mt-5 rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-                  {hasDiscount && (
+                  {/* Harga ASLI (fake/dicoret) */}
+                  {product.harga_asli && product.harga_asli > 0 && (
                     <p className="text-sm text-gray-400 line-through sm:text-base">
-                      {formatRupiah(product.harga_satuan)}
+                      {formatRupiah(product.harga_asli)}
                     </p>
                   )}
+                  
+                  {/* Harga DISKON (real) */}
                   <div className="flex items-center gap-3">
                     <p className="text-2xl font-extrabold text-[#163f73] sm:text-3xl">
-                      {hasDiscount && lowestGrosir
-                        ? formatRupiah(lowestGrosir)
-                        : formatRupiah(product.harga_satuan)}
+                      {formatRupiah(product.harga_satuan)}
                     </p>
                     {hasDiscount && discountPercent > 0 && (
                       <span className="rounded-lg bg-[#c3dcff] px-2 py-0.5 text-xs font-extrabold text-[#163f73] sm:text-sm">
@@ -154,25 +152,21 @@ function ProductDetailInner() {
                     )}
                   </div>
 
-                  {hasDiscount && (
+                  {/* Harga GROSIR */}
+                  {hasGrosir && (
                     <div className="mt-4">
                       <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#163f73] sm:text-sm">
                         Harga Grosir
                       </p>
-                      <div className="space-y-1.5">
-                        {product.discounts.map((d) => (
-                          <div
-                            key={d.id_discount}
-                            className="flex items-center justify-between rounded-xl bg-[#163f73] px-4 py-2.5"
-                          >
-                            <span className="text-xs font-semibold text-white sm:text-sm">
-                              Beli ≥ {d.min_qty} pcs
-                            </span>
-                            <span className="text-sm font-extrabold text-white sm:text-base">
-                              {formatRupiah(d.harga_grosir)} / pcs
-                            </span>
-                          </div>
-                        ))}
+                      <div className="rounded-xl bg-[#163f73] px-4 py-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-white sm:text-sm">
+                            Beli ≥ {product.min_grosir} pcs
+                          </span>
+                          <span className="text-sm font-extrabold text-white sm:text-base">
+                            {product.harga_grosir ? formatRupiah(product.harga_grosir) : '-'} / pcs
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )}
