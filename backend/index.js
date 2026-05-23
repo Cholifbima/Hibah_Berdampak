@@ -209,38 +209,26 @@ api.post('/auth/register', async (req, res) => {
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
-
       token,
-
       user: {
-
         id_user: user.id_user,
-
         nama_lengkap: user.nama_lengkap,
-
         username: user.username,
-
         email: user.email,
-
         no_whatsapp: user.no_whatsapp,
-
+        alamat: user.alamat,
+        lat: user.lat,
+        lng: user.lng,
+        avatar_url: user.avatar_url,
         role: user.role,
-
       },
-
     });
 
   } catch (error) {
-
     console.error('Register error:', error);
-
     res.status(500).json({ error: 'Gagal membuat akun' });
-
   }
-
 });
-
-
 
 api.post('/auth/login', async (req, res) => {
 
@@ -271,31 +259,23 @@ api.post('/auth/login', async (req, res) => {
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
-
       token,
-
       user: {
-
         id_user: user.id_user,
-
         nama_lengkap: user.nama_lengkap,
-
         username: user.username,
-
         email: user.email,
-
         no_whatsapp: user.no_whatsapp,
-
+        alamat: user.alamat,
+        lat: user.lat,
+        lng: user.lng,
+        avatar_url: user.avatar_url,
         role: user.role,
-
       },
-
     });
 
   } catch (error) {
-
     console.error('Login error:', error);
-
     res.status(500).json({ error: 'Gagal login' });
 
   }
@@ -391,31 +371,23 @@ api.post('/auth/google', async (req, res) => {
     const token = jwt.sign({ id: user.id_user, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
-
       token,
-
       user: {
-
         id_user: user.id_user,
-
         nama_lengkap: user.nama_lengkap,
-
         username: user.username,
-
         email: user.email,
-
         no_whatsapp: user.no_whatsapp,
-
+        alamat: user.alamat,
+        lat: user.lat,
+        lng: user.lng,
+        avatar_url: user.avatar_url,
         role: user.role,
-
       },
-
     });
 
   } catch (error) {
-
     console.error('Google auth error:', error);
-
     res.status(500).json({ error: 'Gagal login dengan Google' });
 
   }
@@ -793,59 +765,35 @@ api.delete('/products/:id', adminMiddleware, async (req, res) => {
 
 
 api.post('/orders', authMiddleware, async (req, res) => {
-
   try {
-
-    const { kode_pesanan, nama_penerima, alamat_pengiriman, no_telepon, catatan, items } = req.body;
+    const { kode_pesanan, nama_penerima, alamat_pengiriman, no_telepon, catatan, lat, lng, items } = req.body;
 
     if (!kode_pesanan || !nama_penerima || !alamat_pengiriman || !items?.length)
-
       return res.status(400).json({ error: 'Data pesanan tidak lengkap' });
-
-
 
     const total = items.reduce((s, i) => s + i.subtotal, 0);
 
-
-
     const order = await prisma.order.create({
-
       data: {
-
         id_user: req.userId,
-
         kode_pesanan,
-
         total_pembayaran: total,
-
         nama_penerima,
-
         alamat_pengiriman,
-
         no_telepon: no_telepon || '',
-
         catatan: catatan || '',
-
+        lat: lat || null,
+        lng: lng || null,
         details: {
-
           create: items.map((i) => ({
-
             id_product: i.id_product,
-
             kuantitas: i.kuantitas,
-
             harga_satuan_terekam: i.harga_satuan_terekam,
-
             subtotal: i.subtotal,
-
           })),
-
         },
-
       },
-
       include: { details: { include: { product: true } } },
-
     });
 
     res.json(order);
@@ -1263,31 +1211,102 @@ const openai = process.env.OPENAI_API_KEY
 
 
 api.post('/chat', async (req, res) => {
-
   try {
-
-    if (!openai) {
-
-      return res.status(503).json({ error: 'Layanan AI belum dikonfigurasi. Set OPENAI_API_KEY di .env' });
-
-    }
-
-
-
     const { messages } = req.body;
+    
+    // Ambil pesan terakhir user
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content?.toLowerCase() || '';
 
-    if (!Array.isArray(messages) || messages.length === 0) {
+    // Ambil produk dari DB
+    const products = await prisma.product.findMany({
+      where: { stok: { gt: 0 } },
+      select: {
+        id_product: true,
+        nama_produk: true,
+        kategori: true,
+        harga_satuan: true,
+        stok: true,
+        discounts: { select: { min_qty: true, harga_grosir: true } },
+      },
+      orderBy: { nama_produk: 'asc' },
+    });
 
-      return res.status(400).json({ error: 'messages harus berupa array' });
+    // SMART FALLBACK: Jika OpenAI tidak tersedia, gunakan keyword matching
+    if (!openai) {
+      const keywords = lastUserMessage.split(/\s+/);
+      
+      // Cari produk yang match dengan keyword
+      const matchedProducts = products.filter(p => {
+        const nama = p.nama_produk.toLowerCase();
+        const kategori = (p.kategori || '').toLowerCase();
+        return keywords.some(k => 
+          nama.includes(k) || 
+          kategori.includes(k) ||
+          k.includes('tas') && nama.includes('tas')
+        );
+      }).slice(0, 4);
 
+      // Generate respons sederhana
+      let reply = '';
+      
+      if (lastUserMessage.includes('halo') || lastUserMessage.includes('hi') || lastUserMessage.includes('hello')) {
+        reply = `Halo! 👋 Selamat datang di TopAssist!\n\nSaya bisa membantu kamu mencari produk tas berkualitas. Kami punya berbagai pilihan:\n\n`;
+        products.slice(0, 4).forEach(p => {
+          reply += `• [ID:${p.id_product}] ${p.nama_produk} - Rp${p.harga_satuan.toLocaleString('id-ID')}\n`;
+        });
+        reply += `\nTanyakan produk spesifik atau kategori yang kamu cari ya!`;
+      } else if (lastUserMessage.includes('murah') || lastUserMessage.includes('termurah')) {
+        const cheapest = [...products].sort((a, b) => a.harga_satuan - b.harga_satuan).slice(0, 3);
+        reply = `Berikut produk dengan harga terbaik dari kami:\n\n`;
+        cheapest.forEach(p => {
+          reply += `• [ID:${p.id_product}] ${p.nama_produk} - **Rp${p.harga_satuan.toLocaleString('id-ID')}**\n`;
+        });
+        reply += `\nMau lihat yang lain? Coba tanyakan "tas pancing" atau "tas olahraga"!`;
+      } else if (lastUserMessage.includes('pancing')) {
+        const pancing = products.filter(p => p.nama_produk.toLowerCase().includes('pancing')).slice(0, 3);
+        if (pancing.length > 0) {
+          reply = `Kami punya beberapa tas pancing keren nih:\n\n`;
+          pancing.forEach(p => {
+            reply += `• [ID:${p.id_product}] ${p.nama_produk} - Rp${p.harga_satuan.toLocaleString('id-ID')}\n`;
+          });
+        } else {
+          reply = `Maaf, saat ini stok tas pancing sedang habis. Coba lihat produk lain seperti tas olahraga atau tas multifungsi ya!`;
+        }
+      } else if (lastUserMessage.includes('grosir') || lastUserMessage.includes('diskon') || lastUserMessage.includes('murah banyak')) {
+        const grosirProducts = products.filter(p => p.discounts.length > 0).slice(0, 4);
+        if (grosirProducts.length > 0) {
+          reply = `Yuk, cek promo grosir kami! 🎉\n\n`;
+          grosirProducts.forEach(p => {
+            const disc = p.discounts[0];
+            reply += `• [ID:${p.id_product}] ${p.nama_produk}\n  Beli ${disc.min_qty} pcs cuma **Rp${disc.harga_grosir.toLocaleString('id-ID')}**/pcs\n\n`;
+          });
+        } else {
+          reply = `Saat ini belum ada promo grosir aktif. Tetap pantau ya, nanti bakal ada promo menarik! 😊`;
+        }
+      } else if (matchedProducts.length > 0) {
+        reply = `Berikut rekomendasi produk untuk kamu:\n\n`;
+        matchedProducts.forEach(p => {
+          reply += `• [ID:${p.id_product}] ${p.nama_produk}\n  Harga: Rp${p.harga_satuan.toLocaleString('id-ID')}\n`;
+          if (p.discounts.length > 0) {
+            reply += `  🏷️ Grosir: Beli ${p.discounts[0].min_qty}+ pcs = Rp${p.discounts[0].harga_grosir.toLocaleString('id-ID')}/pcs\n`;
+          }
+          reply += `\n`;
+        });
+        reply += `Mau tanya detail produk tertentu? Langsung klik aja produknya! 😉`;
+      } else {
+        reply = `Hai! 👋 Saya bisa bantu kamu cari produk tas dari TopAssist.\n\nKami punya **${products.length} produk** siap kirim!\n\nCoba tanyakan:\n• "tas pancing"\n• "tas olahraga"\n• "produk murah"\n• "promo grosir"\n\nAtau sebutkan kebutuhan kamu, nanti saya carikan yang cocok! 😊`;
+      }
+
+      return res.json({ reply, products: matchedProducts });
     }
 
-
+    // OpenAI tersedia - gunakan AI
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Maaf, terjadi kesalahan. Silakan refresh halaman dan coba lagi.' });
+    }
 
     // Ambil produk dari DB (hanya field yang diperlukan untuk hemat token)
-
-    const products = await prisma.product.findMany({
-
+    const aiProducts = await prisma.product.findMany({
       where: { stok: { gt: 0 } },
 
       select: {
@@ -1313,25 +1332,15 @@ api.post('/chat', async (req, res) => {
 
 
     // Buat katalog ringkas untuk system prompt (hemat token)
-
-    const catalog = products
-
+    const catalog = aiProducts
       .filter((p) => p.nama_produk.trim())
-
       .map((p) => {
-
         const harga = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(p.harga_satuan);
-
         const grosir = p.discounts.length > 0
-
           ? ` | Grosir: beli >=${p.discounts[0].min_qty} pcs = ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(p.discounts[0].harga_grosir)}/pcs`
-
           : '';
-
         return `- [ID:${p.id_product}] ${p.nama_produk} | Kategori: ${p.kategori || '-'} | Harga: ${harga} | Stok: ${p.stok}${grosir}`;
-
       })
-
       .join('\n');
 
 
@@ -1423,13 +1432,9 @@ ATURAN PENTING:
     res.json({ reply: cleanReply, products: mentionedProducts });
 
   } catch (error) {
-
     console.error('[chat] Error:', error?.message || error);
-
-    res.status(500).json({ error: 'Gagal menghubungi layanan AI. Coba lagi.' });
-
+    res.status(500).json({ error: 'Maaf, tidak bisa terhubung ke server. Coba lagi nanti.' });
   }
-
 });
 
 

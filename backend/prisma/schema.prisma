@@ -80,6 +80,8 @@ model Order {
   catatan          String        @db.Text
   jenis_pengiriman String?
   nomor_resi       String?
+  lat              Float?
+  lng              Float?
   tanggal_pesanan  DateTime      @default(now())
   updated_at       DateTime      @updatedAt
   details          OrderDetail[]

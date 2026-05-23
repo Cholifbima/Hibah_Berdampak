@@ -79,8 +79,16 @@ export default function Navbar() {
                 <Link href="/pesanan" className="rounded-xl p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Pesanan Saya">
                   <Package className="h-5 w-5" />
                 </Link>
-                <Link href="/profil" className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" title="Edit Profil">
-                  <UserCircle className="h-5 w-5" />
+                <Link href="/profil" className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" title="Edit Profil">
+                  {user.avatar_url ? (
+                    <img 
+                      src={user.avatar_url} 
+                      alt={user.nama_lengkap} 
+                      className="h-7 w-7 rounded-full object-cover ring-2 ring-white/30"
+                    />
+                  ) : (
+                    <UserCircle className="h-6 w-6" />
+                  )}
                   <span className="max-w-[100px] truncate">{user.nama_lengkap.split(" ")[0]}</span>
                 </Link>
                 <button
@@ -195,7 +203,15 @@ export default function Navbar() {
               {user ? (
                 <>
                   <div className="mb-3 flex items-center gap-2.5 px-2">
-                    <UserCircle className="h-8 w-8 shrink-0 text-white/60" />
+                    {user.avatar_url ? (
+                      <img 
+                        src={user.avatar_url} 
+                        alt={user.nama_lengkap} 
+                        className="h-9 w-9 rounded-full object-cover ring-2 ring-white/30"
+                      />
+                    ) : (
+                      <UserCircle className="h-8 w-8 shrink-0 text-white/60" />
+                    )}
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-bold text-white">{user.nama_lengkap}</p>
                       <p className="text-[11px] text-white/50">{user.role === "ADMIN" ? "Administrator" : "Pelanggan"}</p>

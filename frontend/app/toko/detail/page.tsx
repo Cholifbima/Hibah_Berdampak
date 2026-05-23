@@ -235,9 +235,15 @@ function ProductDetailInner() {
                           href={product.link_lazada}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#F57224] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#0F156D] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                         >
-                          <img src="https://logo.clearbit.com/lazada.co.id" alt="" className="h-5 w-5 rounded-sm object-contain" />
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white p-0.5 overflow-hidden">
+                            <img 
+                              src="/assets/icons/IkonHibah/lazada.png" 
+                              alt="" 
+                              className="h-auto w-auto max-h-full max-w-full object-contain" 
+                            />
+                          </span>
                           Lazada
                           <ExternalLink className="h-3 w-3 opacity-80" />
                         </a>

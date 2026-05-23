@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useCart, getEffectivePrice } from "@/lib/cart-context";
 import { formatRupiah, apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 const WA_NUMBER = "62895386224772";
 const ORDER_COUNTER_KEY = "topassist_order_counter";
@@ -55,12 +58,90 @@ export default function OrderForm() {
   const [detailAlamat, setDetailAlamat] = useState("");
   const [provinsi, setProvinsi] = useState("");
   const [catatan, setCatatan] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   const previewOrderNumber = useMemo(() => {
     if (typeof window === "undefined") return "#0001";
     const current = parseInt(localStorage.getItem(ORDER_COUNTER_KEY) || "0", 10);
     return `#${String(current + 1).padStart(4, "0")}`;
   }, []);
+
+  // Load user address from profile on mount
+  useEffect(() => {
+    if (user) {
+      if (user.nama_lengkap) setNama(user.nama_lengkap);
+      if (user.no_whatsapp) setTelepon(user.no_whatsapp);
+      if (user.alamat) {
+        setAlamat(user.alamat);
+        // Try to extract province from alamat (format: street, city, province, country)
+        const parts = user.alamat.split(",").map(p => p.trim());
+        if (parts.length >= 3) {
+          setProvinsi(parts[parts.length - 2]);
+        }
+      }
+      if (user.lat) setLat(user.lat);
+      if (user.lng) setLng(user.lng);
+    }
+  }, [user]);
+
+  // Detect current location
+  function detectLocation() {
+    if (!navigator.geolocation) {
+      alert("Browser tidak mendukung GPS");
+      return;
+    }
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLat(position.coords.latitude);
+        setLng(position.coords.longitude);
+        // Reverse geocode to get address
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.display_name) {
+              const address = data.display_name;
+              setAlamat(address);
+              const parts = address.split(",").map((p: string) => p.trim());
+              if (parts.length >= 3) {
+                setProvinsi(parts[parts.length - 2]);
+              }
+            }
+          })
+          .catch(() => {})
+          .finally(() => setDetectingLocation(false));
+      },
+      (error) => {
+        setDetectingLocation(false);
+        alert("Gagal mendeteksi lokasi: " + error.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  // Save address to profile
+  async function saveAddressToProfile() {
+    if (!user || !token) return;
+    const fullAlamat = [alamat, detailAlamat, provinsi, country].filter(Boolean).join(", ");
+    try {
+      await fetch(apiUrl("/users/me"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          alamat: fullAlamat,
+          lat,
+          lng,
+        }),
+      });
+    } catch {
+      // Silent fail - address will still be used for this order
+    }
+  }
 
   /* --- guards --- */
   if (authLoading || (user && cartLoading)) {
@@ -188,6 +269,8 @@ export default function OrderForm() {
           alamat_pengiriman: fullAlamat,
           no_telepon: telepon,
           catatan,
+          lat,
+          lng,
           items: items.map((item) => ({
             id_product: item.id_product,
             kuantitas: item.qty,
@@ -199,6 +282,9 @@ export default function OrderForm() {
     } catch {
       /* WA tetap dikirim meski DB gagal */
     }
+
+    // Save address to profile for future orders
+    await saveAddressToProfile();
 
     const msg = encodeURIComponent(buildMessage(orderNum));
     window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
@@ -289,18 +375,62 @@ export default function OrderForm() {
               />
             </FormField>
 
-            <FormField label="Alamat" required>
-              <input
-                type="text"
+            {/* Map Picker untuk Alamat */}
+            <div className="space-y-3 border-t border-gray-100 pt-4">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-[11px] font-semibold text-[#373737]">
+                  <MapPin className="h-3.5 w-3.5 text-[#163f73]" />
+                  Pilih Lokasi Pengiriman
+                </label>
+                <button
+                  type="button"
+                  onClick={detectLocation}
+                  disabled={detectingLocation}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {detectingLocation ? <Loader2 className="h-3 w-3 animate-spin" /> : <MapPin className="h-3 w-3" />}
+                  {detectingLocation ? "Mendeteksi..." : "Lokasi Saya"}
+                </button>
+              </div>
+              
+              <MapPicker
+                lat={lat}
+                lng={lng}
+                onChange={(newLat, newLng, address) => {
+                  setLat(newLat);
+                  setLng(newLng);
+                  if (address) {
+                    setAlamat(address);
+                    const parts = address.split(",").map(p => p.trim());
+                    if (parts.length >= 3) {
+                      setProvinsi(parts[parts.length - 2]);
+                    }
+                  }
+                }}
+              />
+              
+              {(lat && lng) && (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-700 border border-emerald-200">
+                    <MapPin className="h-2.5 w-2.5" />
+                    {lat.toFixed(6)}, {lng.toFixed(6)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <FormField label="Alamat Lengkap" required>
+              <textarea
                 value={alamat}
                 onChange={(e) => setAlamat(e.target.value)}
-                placeholder="Jl., Kecamatan, Kota"
-                className={inputClass}
+                placeholder="Alamat lengkap pengiriman..."
+                rows={3}
+                className={`${inputClass} resize-none`}
                 required
               />
             </FormField>
 
-            <FormField label="Apartement, Kos, Rumah, dll (optional)">
+            <FormField label="Detail Tambahan (No. rumah, RT/RW, dll)">
               <input
                 type="text"
                 value={detailAlamat}
@@ -371,14 +501,30 @@ export default function OrderForm() {
           </div>
         </div>
 
-        {/* Back link */}
-        <div className="mt-4 text-center">
+        {/* Back link & Lazada */}
+        <div className="mt-4 flex items-center justify-between">
           <Link
             href="/keranjang"
             className="text-[13px] font-semibold text-white/80 hover:text-white transition-colors"
           >
             ← Kembali ke Keranjang
           </Link>
+          <a
+            href="https://www.lazada.co.id/shop/topassist"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm hover:shadow-md transition-shadow"
+            title="Kunjungi kami di Lazada"
+          >
+            <span className="text-[11px] text-gray-500">Juga tersedia di</span>
+            <Image
+              src="/assets/icons/IkonHibah/lazada.png"
+              alt="Lazada"
+              width={60}
+              height={20}
+              className="h-5 w-auto object-contain"
+            />
+          </a>
         </div>
       </form>
     </div>

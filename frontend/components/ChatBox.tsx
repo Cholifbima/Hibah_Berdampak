@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Send, ShoppingBag, HelpCircle, Package, Tag, AlertCircle } from "lucide-react";
+import { Send, ShoppingBag, HelpCircle, Package, Tag, AlertCircle, Sparkles, Bot, User, MessageCircle } from "lucide-react";
 import { type Product, formatRupiah, apiUrl } from "@/lib/api";
 
 interface Message {
@@ -19,10 +19,10 @@ interface ChatBoxProps {
 }
 
 const SUGGESTIONS = [
-  { icon: ShoppingBag, text: "Rekomendasikan tas pancing" },
-  { icon: HelpCircle, text: "Produk untuk outdoor?" },
-  { icon: Tag, text: "Ada diskon grosir?" },
-  { icon: Package, text: "Produk paling murah?" },
+  { icon: ShoppingBag, text: "Rekomendasikan tas pancing", color: "bg-amber-100 text-amber-600" },
+  { icon: HelpCircle, text: "Produk untuk outdoor?", color: "bg-emerald-100 text-emerald-600" },
+  { icon: Tag, text: "Ada diskon grosir?", color: "bg-rose-100 text-rose-600" },
+  { icon: Package, text: "Produk paling murah?", color: "bg-violet-100 text-violet-600" },
 ];
 
 export default function ChatBox({ products: _ }: ChatBoxProps) {
@@ -96,75 +96,106 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden" style={{ background: "#ffffff" }}>
+    <div className="flex flex-1 flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
 
       {/* ── Header ── */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 sm:px-5"
-        style={{ background: "linear-gradient(135deg, #163f73 0%, #1a4f91 100%)" }}
-      >
-        <div className="relative shrink-0">
-          <Image
-            src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
-            alt="TopAssist AI"
-            width={40}
-            height={40}
-            className="h-10 w-10 rounded-full object-cover ring-2 ring-white/30"
-          />
-          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-green-400" />
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#163f73] via-[#1e4f8f] to-[#163f73] px-4 py-4 sm:px-5">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 h-32 w-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 h-24 w-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        
+        <div className="relative flex items-center gap-3">
+          <div className="relative shrink-0">
+            <div className="h-12 w-12 rounded-2xl bg-white p-0.5 shadow-lg shadow-black/20">
+              <Image
+                src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
+                alt="TopAssist AI"
+                width={44}
+                height={44}
+                className="h-full w-full rounded-xl object-cover"
+              />
+            </div>
+            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#163f73] bg-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-white leading-tight">Konsultan AI</p>
+              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+            </div>
+            <p className="text-[11px] font-medium text-emerald-300 flex items-center gap-1">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+              </span>
+              Online — siap membantu kamu
+            </p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white leading-tight">Konsultan AI TopAssist</p>
-          <p className="text-[11px] font-medium text-green-300">● Online — siap membantu</p>
-        </div>
-        <span className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold text-white/90 ring-1 ring-white/20">
-          GPT-4o mini
-        </span>
       </div>
 
       {/* ── Messages ── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 space-y-5"
-        style={{ background: "#f5f7fb" }}
+        className="flex-1 overflow-y-auto px-4 py-5 sm:px-5 space-y-6"
       >
+        {/* Welcome Card */}
+        {messages.length <= 1 && (
+          <div className="mx-auto max-w-md">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#163f73] to-[#1e4f8f] p-5 text-white shadow-lg">
+              <div className="absolute top-0 right-0 h-24 w-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative">
+                <div className="mb-3 flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-amber-300" />
+                  <span className="text-xs font-semibold text-amber-200">AI Assistant</span>
+                </div>
+                <h3 className="mb-2 text-lg font-bold">Selamat Datang! 👋</h3>
+                <p className="text-sm text-white/90 leading-relaxed">
+                  Saya bisa membantu kamu menemukan produk tas yang tepat. Tanyakan rekomendasi, harga, diskon grosir, atau jenis produk!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+          <div key={msg.id} className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             {/* Avatar */}
             {msg.role === "assistant" ? (
-              <Image
-                src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
-                alt="AI"
-                width={28}
-                height={28}
-                className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-[#163f73]/20 mb-0.5"
-              />
+              <div className="relative shrink-0">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#163f73] to-[#1e4f8f] p-0.5 shadow-md">
+                  <div className="h-full w-full rounded-[10px] bg-white flex items-center justify-center">
+                    <Image
+                      src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
+                      alt="AI"
+                      width={28}
+                      height={28}
+                      className="h-7 w-7 rounded-lg object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
             ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#163f73] text-[11px] font-bold text-white mb-0.5">
-                K
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 shadow-md">
+                <User className="h-5 w-5 text-white" />
               </div>
             )}
 
-            <div className={`flex max-w-[76%] sm:max-w-[70%] flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}>
+            <div className={`flex max-w-[80%] sm:max-w-[75%] flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}>
               {/* Bubble */}
               {msg.error ? (
-                <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 shadow-sm">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{msg.content}</span>
                 </div>
               ) : msg.role === "assistant" ? (
-                <div
-                  className="rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed shadow-sm"
-                  style={{ background: "#ffffff", color: "#1e293b", border: "1px solid #e8edf5" }}
-                >
-                  <p style={{ whiteSpace: "pre-line", color: "#1e293b" }}>{msg.content}</p>
+                <div className="rounded-2xl rounded-tl-sm bg-white px-5 py-4 text-sm leading-relaxed shadow-md border border-gray-100">
+                  <p className="text-gray-700 whitespace-pre-line">{msg.content}</p>
                 </div>
               ) : (
-                <div
-                  className="rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed"
-                  style={{ background: "#163f73", color: "#ffffff" }}
-                >
-                  <p style={{ whiteSpace: "pre-line", color: "#ffffff" }}>{msg.content}</p>
+                <div className="rounded-2xl rounded-tr-sm bg-gradient-to-br from-[#163f73] to-[#1e4f8f] px-5 py-4 text-sm leading-relaxed shadow-md">
+                  <p className="text-white whitespace-pre-line">{msg.content}</p>
                 </div>
               )}
 
@@ -202,49 +233,75 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
                   })}
                 </div>
               )}
+
+              {/* No products match - WhatsApp Custom Order */}
+              {msg.role === "assistant" && (!msg.products || msg.products.length === 0) && (
+                <div className="mt-2">
+                  <a
+                    href={`https://wa.me/628157799036?text=${encodeURIComponent('Halo, saya ingin custom order atau tanya produk tertentu')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition-all"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Chat WhatsApp untuk Custom Order
+                  </a>
+                  <p className="mt-1.5 text-[10px] text-gray-500">Tidak menemukan yang dicari? Langsung chat admin untuk bantuan custom! 👆</p>
+                </div>
+              )}
+
+              {/* Typing indicator */}
+              {isLoading && (
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#163f73] to-[#1e4f8f] p-0.5 shadow-md">
+                    <div className="h-full w-full rounded-[10px] bg-white flex items-center justify-center">
+                      <Image
+                        src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
+                        alt="AI"
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-lg object-cover"
+                      />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl rounded-tl-sm bg-white px-5 py-4 shadow-md border border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">Sedang mengetik</span>
+                      <div className="flex items-center gap-1">
+                        {[0, 150, 300].map((delay) => (
+                          <span
+                            key={delay}
+                            className="h-1.5 w-1.5 rounded-full bg-[#163f73] animate-bounce"
+                            style={{ animationDelay: `${delay}ms` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
 
-        {/* Typing indicator */}
-        {isLoading && (
-          <div className="flex items-end gap-2">
-            <Image
-              src="/assets/icons/IkonHibah/logo_bg_white_large.jpeg"
-              alt="AI"
-              width={28}
-              height={28}
-              className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-[#163f73]/20 mb-0.5"
-            />
-            <div className="rounded-2xl rounded-bl-sm bg-white px-5 py-3.5 shadow-sm ring-1 ring-gray-100">
-              <div className="flex items-center gap-1.5">
-                {[0, 160, 320].map((delay) => (
-                  <span
-                    key={delay}
-                    className="h-2 w-2 rounded-full bg-[#163f73]/35 animate-bounce"
-                    style={{ animationDelay: `${delay}ms` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Suggestions */}
         {messages.length <= 1 && !isLoading && (
-          <div className="pt-1 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Coba tanyakan:</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="pt-2 space-y-4">
+            <p className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              Coba tanyakan:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s.text}
                   onClick={() => handleSend(s.text)}
-                  className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-[12px] font-semibold text-gray-600 shadow-sm transition-all hover:border-[#163f73]/40 hover:bg-[#e9f4ff] hover:text-[#163f73] hover:shadow-md"
+                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-[13px] font-medium text-gray-700 shadow-sm transition-all hover:border-[#163f73]/30 hover:shadow-md hover:translate-y-[-1px]"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#e9f4ff] text-[#163f73]">
-                    <s.icon className="h-3.5 w-3.5" />
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${s.color}`}>
+                    <s.icon className="h-4 w-4" />
                   </span>
-                  {s.text}
+                  <span className="group-hover:text-[#163f73] transition-colors">{s.text}</span>
                 </button>
               ))}
             </div>
@@ -253,28 +310,28 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
       </div>
 
       {/* ── Input Area ── */}
-      <div className="border-t border-gray-100 bg-white px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-[#f8fafc] px-1 py-1 pl-4 focus-within:border-[#163f73]/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#163f73]/10 transition-all">
+      <div className="border-t border-gray-100 bg-white px-4 py-4 sm:px-5">
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-1 py-1 pl-4 focus-within:border-[#163f73]/50 focus-within:bg-white focus-within:shadow-md focus-within:ring-4 focus-within:ring-[#163f73]/5 transition-all">
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Tanya produk, rekomendasi, harga…"
+            placeholder="Tulis pertanyaan kamu..."
             disabled={isLoading}
-            className="flex-1 bg-transparent py-1.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none disabled:opacity-60"
+            className="flex-1 bg-transparent py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none disabled:opacity-60"
           />
           <button
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#163f73] text-white transition-all hover:bg-[#0f2d55] hover:scale-105 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#163f73] to-[#1e4f8f] text-white transition-all hover:shadow-lg hover:shadow-[#163f73]/25 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none"
           >
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-2 text-center text-[10px] text-gray-400">
-          Didukung GPT-4o mini · Rekomendasi berdasarkan katalog TopAssist
+        <p className="mt-3 text-center text-[10px] text-gray-400">
+          Dibuat dengan cermat untuk pengalaman terbaik
         </p>
       </div>
     </div>

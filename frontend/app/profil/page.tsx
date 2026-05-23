@@ -14,7 +14,7 @@ import {
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
 export default function ProfilPage() {
-  const { user, token, updateProfile } = useAuth();
+  const { user, token, loading: authLoading, updateProfile } = useAuth();
   const router = useRouter();
 
   const [form, setForm] = useState({ nama_lengkap: "", email: "", no_whatsapp: "", alamat: "", lat: null as number | null, lng: null as number | null });
@@ -32,7 +32,13 @@ export default function ProfilPage() {
   const [detectingLocation, setDetectingLocation] = useState(false);
 
   useEffect(() => {
-    if (!token) { router.push("/login?redirect=/profil"); return; }
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    // Only redirect if auth is done loading and no token
+    if (!token) { 
+      router.push("/login?redirect=/profil"); 
+      return; 
+    }
     if (user) {
       setForm({ 
         nama_lengkap: user.nama_lengkap || "", 
@@ -44,9 +50,9 @@ export default function ProfilPage() {
       });
       if (user.avatar_url) setAvatarPreview(user.avatar_url);
     }
-  }, [user, token, router]);
+  }, [user, token, authLoading, router]);
 
-  if (!user) return (
+  if (authLoading || !user) return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#f0f7ff] to-white">
       <Loader2 className="h-10 w-10 animate-spin text-[#163f73]" />
     </div>
