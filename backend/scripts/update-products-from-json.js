@@ -7,6 +7,16 @@ const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
+// Regenerate Prisma client if schema changed
+const { execSync } = require('child_process');
+console.log('🔄 Regenerating Prisma client...');
+try {
+  execSync('npx prisma generate', { stdio: 'inherit' });
+  console.log('✅ Prisma client regenerated\n');
+} catch (e) {
+  console.log('⚠️ Prisma generate failed, continuing with existing client\n');
+}
+
 const prisma = new PrismaClient();
 
 // Parse harga grosir dari string "Beli (>=10) Rp73.000"
