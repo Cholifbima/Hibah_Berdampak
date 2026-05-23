@@ -32,6 +32,7 @@ async function main() {
     const linkShopee = (item['Link Shopee'] || '').trim() || null;
     const linkTokopedia = (item['Link Tokopedia'] || '').trim() || null;
     const linkLazada = (item['Link Lazada'] || '').trim() || null;
+    const rating = typeof item['Rating'] === 'number' ? item['Rating'] : 5.0;
 
     if (!namaProduk) {
       skipped++;
@@ -50,6 +51,7 @@ async function main() {
           link_shopee: linkShopee,
           link_tokopedia: linkTokopedia,
           link_lazada: linkLazada,
+          rating,
         },
       });
       console.log(`✓ Updated: ${match.nama_produk}`);

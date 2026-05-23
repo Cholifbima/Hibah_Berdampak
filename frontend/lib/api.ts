@@ -35,6 +35,7 @@ export interface Product {
   stok: number;
   kategori: string;
   gambar_url: string | null;
+  rating: number;
   link_shopee: string | null;
   link_tokopedia: string | null;
   link_lazada: string | null;

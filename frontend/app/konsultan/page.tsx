@@ -28,9 +28,19 @@ export default function KonsultanPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 bg-[#f0f4f8]" style={{ paddingTop: "64px", minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
-        <div className="flex flex-1 flex-col mx-auto w-full max-w-3xl px-0 sm:px-4 sm:py-4" style={{ height: "calc(100dvh - 64px)" }}>
-          <div className="flex flex-1 flex-col overflow-hidden sm:rounded-2xl sm:shadow-lg">
+      <main
+        className="flex flex-1 flex-col"
+        style={{
+          paddingTop: "64px",
+          minHeight: "100dvh",
+          background: "linear-gradient(160deg, #e9f4ff 0%, #dbeeff 40%, #c8e1ff 100%)",
+        }}
+      >
+        <div
+          className="flex flex-1 flex-col mx-auto w-full max-w-2xl px-3 py-3 sm:px-6 sm:py-5"
+          style={{ height: "calc(100dvh - 64px)" }}
+        >
+          <div className="flex flex-1 flex-col overflow-hidden rounded-2xl shadow-xl shadow-[#163f73]/10 ring-1 ring-white/80">
             <ChatBox products={activeProducts} />
           </div>
         </div>

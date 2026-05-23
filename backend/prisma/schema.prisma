@@ -15,8 +15,12 @@ model User {
   username     String   @unique
   email        String?  @unique
   no_whatsapp  String   @default("")
+  alamat       String?
+  lat          Float?
+  lng          Float?
   password     String   @default("")
   google_id    String?  @unique
+  avatar_url   String?
   role         String   @default("CUSTOMER")
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
@@ -32,6 +36,7 @@ model Product {
   stok            Int
   kategori        String
   gambar_url      String?
+  rating          Float          @default(5.0)
   link_shopee     String?
   link_tokopedia  String?
   link_lazada     String?

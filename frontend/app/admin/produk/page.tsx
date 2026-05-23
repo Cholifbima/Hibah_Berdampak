@@ -91,27 +91,38 @@ function ProductModal({
     link_tokopedia: product?.link_tokopedia ?? "",
     link_lazada: product?.link_lazada ?? "",
   });
-  // gambar state terpisah
-  const [gambarUrl, setGambarUrl] = useState<string>(product?.gambar_url ?? "");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>(product?.gambar_url ?? "");
+  // multi-image state
+  const parseInitialUrls = (raw: string | null | undefined): string[] => {
+    if (!raw) return [];
+    if (raw.startsWith('[')) { try { return JSON.parse(raw); } catch { return [raw]; } }
+    return [raw];
+  };
+  const [imageUrls, setImageUrls] = useState<string[]>(parseInitialUrls(product?.gambar_url));
+  const [imageFiles, setImageFiles] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [kategoriMode, setKategoriMode] = useState<"select" | "custom">(product?.kategori && !allCategories.includes(product.kategori) ? "custom" : "select");
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-    setGambarUrl(""); // reset URL lama, akan diupload saat submit
+  const MAX_IMAGES = 8;
+
+  function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_IMAGES - imageUrls.length - imageFiles.length;
+    const toAdd = files.slice(0, remaining).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setImageFiles((prev) => [...prev, ...toAdd]);
+    e.target.value = "";
   }
 
-  function handleRemoveImage() {
-    setImageFile(null);
-    setImagePreview("");
-    setGambarUrl("");
+  function handleRemoveExistingUrl(idx: number) {
+    setImageUrls((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleRemoveNewFile(idx: number) {
+    setImageFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -120,28 +131,34 @@ function ProductModal({
     if (!token) { setErr("Silakan login ulang sebagai admin"); return; }
     setSaving(true);
     try {
-      let finalGambarUrl: string | null = gambarUrl || null;
-
-      // Upload file jika ada file baru dipilih
-      if (imageFile) {
+      // Upload semua file baru secara berurutan
+      const uploadedUrls: string[] = [...imageUrls];
+      if (imageFiles.length > 0) {
         setUploading(true);
-        const fd = new FormData();
-        fd.append("image", imageFile);
-        const upRes = await fetch(apiUrl("/upload-image"), {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
-        setUploading(false);
-        if (!upRes.ok) {
-          const d = await upRes.json();
-          setErr(d.error || "Gagal upload gambar");
-          setSaving(false);
-          return;
+        for (const { file } of imageFiles) {
+          const fd = new FormData();
+          fd.append("image", file);
+          const upRes = await fetch(apiUrl("/upload-image"), {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          });
+          if (!upRes.ok) {
+            const d = await upRes.json();
+            setErr(d.error || "Gagal upload gambar");
+            setSaving(false);
+            setUploading(false);
+            return;
+          }
+          const { url } = await upRes.json();
+          uploadedUrls.push(url);
         }
-        const { url } = await upRes.json();
-        finalGambarUrl = url;
+        setUploading(false);
       }
+      const finalGambarUrl: string | null =
+        uploadedUrls.length === 0 ? null :
+        uploadedUrls.length === 1 ? uploadedUrls[0] :
+        JSON.stringify(uploadedUrls);
 
       const body = {
         nama_produk: form.nama_produk.trim(),
@@ -183,50 +200,63 @@ function ProductModal({
         <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto px-5 py-4 space-y-3">
           {err && <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-[13px] text-red-700"><AlertTriangle className="h-4 w-4 shrink-0" />{err}</div>}
 
-          {/* ── Gambar Upload ── */}
+          {/* ── Multi Gambar Upload ── */}
           <div>
-            <label className="mb-1.5 block text-[12px] font-semibold text-gray-600">Gambar Produk</label>
-            {imagePreview ? (
-              <div className="relative flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imagePreview} alt="preview" className="h-full w-full object-contain p-1" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-semibold text-gray-700">
-                    {imageFile ? imageFile.name : "Gambar saat ini"}
-                  </p>
-                  {imageFile && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      {(imageFile.size / 1024).toFixed(0)} KB
-                    </p>
-                  )}
-                  <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[#163f73]/30 bg-[#163f73]/8 px-2.5 py-1 text-[11px] font-semibold text-[#163f73] hover:bg-[#163f73]/15 transition-colors">
-                    <ImagePlus className="h-3 w-3" />Ganti Gambar
-                    <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="text-[12px] font-semibold text-gray-600">
+                Gambar Produk <span className="font-normal text-gray-400">({imageUrls.length + imageFiles.length}/{MAX_IMAGES})</span>
+              </label>
+              {imageUrls.length + imageFiles.length > 0 && imageUrls.length + imageFiles.length < MAX_IMAGES && (
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[#163f73]/30 bg-[#163f73]/8 px-2.5 py-1 text-[11px] font-semibold text-[#163f73] hover:bg-[#163f73]/15 transition-colors" style={{ background: 'rgba(22,63,115,0.08)' }}>
+                  <ImagePlus className="h-3 w-3" />Tambah Foto
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilesChange} />
+                </label>
+              )}
+            </div>
+
+            {/* Image grid */}
+            {(imageUrls.length + imageFiles.length) > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {/* Existing uploaded URLs */}
+                {imageUrls.map((url, idx) => (
+                  <div key={`url-${idx}`} className="relative aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Foto ${idx + 1}`} className="h-full w-full object-contain p-1" />
+                    {idx === 0 && (
+                      <span className="absolute bottom-1 left-1 rounded-md bg-[#163f73] px-1.5 py-0.5 text-[9px] font-bold text-white">Utama</span>
+                    )}
+                    <button type="button" onClick={() => handleRemoveExistingUrl(idx)}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 border border-gray-200 text-gray-500 hover:text-red-500 transition-colors">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ))}
+                {/* New local files */}
+                {imageFiles.map((item, idx) => (
+                  <div key={`file-${idx}`} className="relative aspect-square overflow-hidden rounded-xl border border-dashed border-[#163f73]/40 bg-[#163f73]/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.preview} alt={`Baru ${idx + 1}`} className="h-full w-full object-contain p-1" />
+                    <span className="absolute bottom-1 left-1 rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white">Baru</span>
+                    <button type="button" onClick={() => handleRemoveNewFile(idx)}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 border border-gray-200 text-gray-500 hover:text-red-500 transition-colors">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
               <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 hover:border-[#163f73]/40 hover:bg-[#163f73]/5 transition-colors">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#163f73]/8">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#163f73]/8" style={{ background: 'rgba(22,63,115,0.08)' }}>
                   <ImagePlus className="h-6 w-6 text-[#163f73]/60" />
                 </div>
                 <div className="text-center">
-                  <p className="text-[13px] font-semibold text-gray-700">Pilih gambar dari perangkat</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">JPG, PNG, WebP — max 5 MB</p>
+                  <p className="text-[13px] font-semibold text-gray-700">Pilih 1–8 gambar produk</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">JPG, PNG, WebP · Gambar pertama = thumbnail utama</p>
                 </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilesChange} />
               </label>
             )}
-            {!imagePreview && (
+            {(imageUrls.length + imageFiles.length) === 0 && (
               <p className="mt-1 text-[11px] text-gray-400 flex items-center gap-1">
                 <ImageOff className="h-3 w-3" />Tanpa gambar produk akan tampil placeholder
               </p>

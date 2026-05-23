@@ -21,14 +21,15 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
 
   return (
     <div className="w-full min-w-0 max-w-full">
-      {/* Gambar utama — min-w-0 mencegah overflow horizontal di grid/flex */}
-      <div className="relative aspect-square w-full max-w-full min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#a8d4f5] to-[#6bb3e8]">
+      {/* Gambar utama */}
+      <div className="relative aspect-square w-full max-w-full min-w-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm">
         <Image
           src={images[activeIndex]}
           alt={`${productName} - Foto ${activeIndex + 1}`}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 500px"
           className="object-contain p-4 sm:p-6"
+          quality={95}
           priority
         />
 
@@ -79,7 +80,7 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
                 alt={`Thumbnail ${i + 1}`}
                 fill
                 sizes="80px"
-                className="object-contain bg-gradient-to-br from-[#d0e8f8] to-[#b0d4f0] p-1"
+                className="object-contain bg-gray-50 p-1"
               />
             </button>
           ))}

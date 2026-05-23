@@ -57,9 +57,29 @@ const GALLERY_MAP: Record<string, string[]> = {
   TasSepedeSegitiga: ["tas_sepeda_segitiga-1.png", "tas_sepeda_segitiga-2.png"],
 };
 
+export function getProductThumbnail(gambarUrl: string | null): string | null {
+  if (!gambarUrl) return null;
+  if (gambarUrl.startsWith('[')) {
+    try {
+      const urls = JSON.parse(gambarUrl);
+      if (Array.isArray(urls) && urls.length > 0) return urls[0] as string;
+    } catch { /* fall through */ }
+  }
+  return gambarUrl;
+}
+
 export function getProductGallery(gambarUrl: string | null): string[] {
   if (!gambarUrl) return [];
 
+  // JSON array format (multi-image stored from admin)
+  if (gambarUrl.startsWith('[')) {
+    try {
+      const urls = JSON.parse(gambarUrl);
+      if (Array.isArray(urls) && urls.length > 0) return urls as string[];
+    } catch { /* fall through */ }
+  }
+
+  // Legacy static folder format
   const match = gambarUrl.match(/\/assets\/products\/([^/]+)\//);
   if (!match) return [gambarUrl];
 

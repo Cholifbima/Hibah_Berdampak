@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X, ShoppingBag, LogOut, UserCircle, Package } from "lucide-react";
@@ -16,12 +16,19 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
-    <nav className="fixed top-0 left-0 right-0 z-[9999] pointer-events-auto border-b border-white/10 bg-[#163f73] shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+    <nav className={`fixed top-0 left-0 right-0 z-[9999] pointer-events-auto border-b border-white/10 bg-[#163f73] transition-shadow duration-300 ${scrolled ? "shadow-[0_6px_32px_rgba(0,0,0,0.28)]" : "shadow-[0_2px_12px_rgba(0,0,0,0.12)]"}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between sm:h-20">
           {/* Logo */}
@@ -72,10 +79,10 @@ export default function Navbar() {
                 <Link href="/pesanan" className="rounded-xl p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Pesanan Saya">
                   <Package className="h-5 w-5" />
                 </Link>
-                <span className="flex items-center gap-1.5 text-sm font-medium text-white">
+                <Link href="/profil" className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-white hover:bg-white/10 transition-colors" title="Edit Profil">
                   <UserCircle className="h-5 w-5" />
                   <span className="max-w-[100px] truncate">{user.nama_lengkap.split(" ")[0]}</span>
-                </span>
+                </Link>
                 <button
                   onClick={logout}
                   className="rounded-xl p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
@@ -162,13 +169,24 @@ export default function Navbar() {
                 </Link>
               )}
               {user && (
-                <Link
-                  href="/pesanan"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-white hover:bg-white/10 transition-colors"
-                >
-                  Pesanan Saya
-                </Link>
+                <>
+                  <Link
+                    href="/profil"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-white hover:bg-white/10 transition-colors"
+                  >
+                    <UserCircle className="h-4 w-4" />
+                    Edit Profil
+                  </Link>
+                  <Link
+                    href="/pesanan"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-white hover:bg-white/10 transition-colors"
+                  >
+                    <Package className="h-4 w-4" />
+                    Pesanan Saya
+                  </Link>
+                </>
               )}
             </div>
 

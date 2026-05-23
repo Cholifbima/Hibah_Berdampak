@@ -2,13 +2,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { Star } from "lucide-react";
 import { formatRupiah, type Product } from "@/lib/api";
+import { getProductThumbnail } from "@/lib/product-gallery";
 
 interface ProductCardShopProps {
   product: Product;
 }
 
 export default function ProductCardShop({ product }: ProductCardShopProps) {
-  const hasImage = !!product.gambar_url;
+  const thumbnail = getProductThumbnail(product.gambar_url);
+  const hasImage = !!thumbnail;
   const hasDiscount = product.discounts.length > 0;
   const lowestGrosir = hasDiscount
     ? Math.min(...product.discounts.map((d) => d.harga_grosir))
@@ -18,16 +20,17 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
     : 0;
 
   return (
-    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-      {/* Gambar produk — background biru konsisten */}
-      <div className="relative aspect-square bg-gradient-to-br from-[#a8d4f5] to-[#6bb3e8]">
+    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-[#163f73]/15">
+      {/* Gambar produk */}
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-white to-[#f5f9ff]">
         {hasImage ? (
           <Image
-            src={product.gambar_url!}
+            src={thumbnail!}
             alt={product.nama_produk}
             fill
             sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw"
             className="object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+            quality={90}
           />
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -78,7 +81,7 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
 
         <div className="mt-1.5 flex items-center gap-1">
           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-[10px] text-gray-500 sm:text-[11px]">5.0</span>
+          <span className="text-[10px] text-gray-500 sm:text-[11px]">{(product.rating ?? 5).toFixed(1)}</span>
           <span className="mx-0.5 text-gray-300">·</span>
           <span className="text-[10px] text-gray-400 sm:text-[11px]">
             {product.stok > 0 ? `Stok ${product.stok}` : "Habis"}
