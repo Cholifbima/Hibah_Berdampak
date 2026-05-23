@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "postinstall": "prisma generate",
-    "db:stock-99": "node prisma/set-all-stock-99.js"
+    "db:stock-99": "node prisma/set-all-stock-99.js",
+    "postinstall": "prisma generate --schema=/home/topkonve/repositories/Hibah_Berdampak/backend/prisma/schema.prisma"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
