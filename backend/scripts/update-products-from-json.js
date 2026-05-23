@@ -78,11 +78,11 @@ async function updateProducts() {
       // Calculate fake original price
       const hargaAsli = calculateHargaAsli(hargaDiskon);
       
-      // Update product
+      // Update product with all fields
       await prisma.product.update({
         where: { id_product: product.id_product },
         data: {
-          rating: Math.round(rating),
+          rating: rating,
           harga_satuan: hargaDiskon,
           harga_asli: hargaAsli,
           harga_grosir: hargaGrosir,
