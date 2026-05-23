@@ -32,7 +32,11 @@ model Product {
   id_product      Int            @id @default(autoincrement())
   nama_produk     String
   deskripsi       String         @db.Text
-  harga_satuan    Int
+  harga_satuan    Int                        // Harga REAL (diskon) - Rp 56.000
+  harga_asli      Int?                       // Harga FAKE/ASLI (tipuan) - Rp 84.000 (dicoret)
+  diskon_persen   Int?         @default(0)   // Persentase diskon - 33%
+  harga_grosir    Int?                       // Harga grosir - Rp 56.000/pcs
+  min_grosir      Int?         @default(10)  // Min pembelian grosir - 10 pcs
   stok            Int
   kategori        String
   gambar_url      String?
