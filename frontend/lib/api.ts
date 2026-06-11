@@ -80,3 +80,91 @@ export function formatRupiah(num: number): string {
     maximumFractionDigits: 0,
   }).format(num);
 }
+
+/**
+ * authFetch: wrapper around fetch() yang otomatis handle token expired.
+ * 
+ * Flow jika 401:
+ * 1. Coba refresh token via /auth/refresh
+ * 2. Jika berhasil, retry request asli dengan token baru
+ * 3. Jika gagal, clear session & redirect ke login
+ * 
+ * Gunakan ini untuk semua fetch yang butuh auth (bukan fetch login/register).
+ */
+export async function authFetch(
+  url: string,
+  options: RequestInit & { headers?: Record<string, string> } = {}
+): Promise<Response> {
+  const res = await fetch(url, options);
+
+  // Jika bukan 401, langsung return
+  if (res.status !== 401) return res;
+
+  // Coba refresh token
+  const TOKEN_KEY = "topassist_token";
+  const USER_KEY = "topassist_user";
+  const currentToken = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
+  if (!currentToken) {
+    // Tidak ada token sama sekali, langsung redirect
+    forceLogout();
+    return res;
+  }
+
+  try {
+    const refreshRes = await fetch(apiUrl("/auth/refresh"), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${currentToken}` },
+    });
+
+    if (!refreshRes.ok) {
+      // Refresh gagal, force logout
+      forceLogout();
+      return res;
+    }
+
+    const refreshData = await refreshRes.json();
+    if (!refreshData.token) {
+      forceLogout();
+      return res;
+    }
+
+    // Simpan token baru
+    localStorage.setItem(TOKEN_KEY, refreshData.token);
+    if (refreshData.user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(refreshData.user));
+    }
+
+    // Retry request asli dengan token baru
+    const newHeaders = { ...options.headers };
+    if (newHeaders["Authorization"] || newHeaders["authorization"]) {
+      newHeaders["Authorization"] = `Bearer ${refreshData.token}`;
+    }
+
+    const retryRes = await fetch(url, { ...options, headers: newHeaders });
+    
+    // Dispatch event supaya auth context sync dengan token baru
+    window.dispatchEvent(new CustomEvent("auth-token-refreshed", {
+      detail: { token: refreshData.token, user: refreshData.user },
+    }));
+
+    return retryRes;
+  } catch {
+    // Network error saat refresh, return original response
+    return res;
+  }
+}
+
+function forceLogout() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("topassist_token");
+  localStorage.removeItem("topassist_user");
+  
+  // Dispatch event supaya auth context logout
+  window.dispatchEvent(new Event("auth-force-logout"));
+  
+  // Redirect ke login jika di halaman admin
+  if (window.location.pathname.startsWith("/admin")) {
+    window.location.href = "/login";
+  }
+}

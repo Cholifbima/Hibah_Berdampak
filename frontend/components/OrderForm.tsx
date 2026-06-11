@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useCart, getEffectivePrice } from "@/lib/cart-context";
-import { formatRupiah, apiUrl } from "@/lib/api";
+import { formatRupiah, apiUrl, authFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Loader2, MapPin } from "lucide-react";
 import Image from "next/image";
@@ -126,7 +126,7 @@ export default function OrderForm() {
     if (!user || !token) return;
     const fullAlamat = [alamat, detailAlamat, provinsi, country].filter(Boolean).join(", ");
     try {
-      await fetch(apiUrl("/users/me"), {
+      await authFetch(apiUrl("/users/me"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -257,7 +257,7 @@ export default function OrderForm() {
       .join(", ");
 
     try {
-      await fetch(apiUrl("/orders"), {
+      await authFetch(apiUrl("/orders"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

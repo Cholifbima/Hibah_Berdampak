@@ -473,6 +473,122 @@ api.post('/auth/google', async (req, res) => {
 
 });
 
+// ─── Token Verify & Refresh ─────────────────────────────────────────────────
+// Verify: cek apakah token masih valid, return user data terbaru dari DB
+api.get('/auth/verify', async (req, res) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer '))
+    return res.status(401).json({ error: 'Token diperlukan' });
+
+  try {
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+    // Ambil data user terbaru dari database
+    const user = await prisma.user.findUnique({ where: { id_user: decoded.id } });
+    if (!user) return res.status(401).json({ error: 'User tidak ditemukan' });
+
+    res.json({
+      valid: true,
+      user: {
+        id_user: user.id_user,
+        nama_lengkap: user.nama_lengkap,
+        username: user.username,
+        email: user.email,
+        no_whatsapp: user.no_whatsapp,
+        alamat: user.alamat,
+        lat: user.lat,
+        lng: user.lng,
+        avatar_url: user.avatar_url,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    // Token expired atau tidak valid
+    return res.status(401).json({ error: 'Token tidak valid atau sudah expired' });
+  }
+});
+
+// Refresh: issue token baru jika token lama masih valid ATAU baru expired < 24 jam
+api.post('/auth/refresh', async (req, res) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer '))
+    return res.status(401).json({ error: 'Token diperlukan' });
+
+  const rawToken = header.slice(7);
+
+  try {
+    // Coba verify dulu (token masih valid)
+    const decoded = jwt.verify(rawToken, JWT_SECRET);
+    const user = await prisma.user.findUnique({ where: { id_user: decoded.id } });
+    if (!user) return res.status(401).json({ error: 'User tidak ditemukan' });
+
+    // Issue token baru
+    const newToken = jwt.sign(
+      { id: user.id_user, username: user.username, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      token: newToken,
+      user: {
+        id_user: user.id_user,
+        nama_lengkap: user.nama_lengkap,
+        username: user.username,
+        email: user.email,
+        no_whatsapp: user.no_whatsapp,
+        alamat: user.alamat,
+        lat: user.lat,
+        lng: user.lng,
+        avatar_url: user.avatar_url,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    // Token expired — cek apakah masih dalam grace period 24 jam
+    if (err.name === 'TokenExpiredError') {
+      try {
+        const decoded = jwt.decode(rawToken);
+        if (!decoded || !decoded.id) return res.status(401).json({ error: 'Token tidak valid' });
+
+        // Grace period: 24 jam setelah expired
+        const expiredAt = (decoded.exp || 0) * 1000;
+        const gracePeriod = 24 * 60 * 60 * 1000; // 24 jam
+        if (Date.now() - expiredAt > gracePeriod) {
+          return res.status(401).json({ error: 'Token sudah expired terlalu lama, silakan login ulang' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id_user: decoded.id } });
+        if (!user) return res.status(401).json({ error: 'User tidak ditemukan' });
+
+        const newToken = jwt.sign(
+          { id: user.id_user, username: user.username, role: user.role },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        return res.json({
+          token: newToken,
+          user: {
+            id_user: user.id_user,
+            nama_lengkap: user.nama_lengkap,
+            username: user.username,
+            email: user.email,
+            no_whatsapp: user.no_whatsapp,
+            alamat: user.alamat,
+            lat: user.lat,
+            lng: user.lng,
+            avatar_url: user.avatar_url,
+            role: user.role,
+          },
+        });
+      } catch {
+        return res.status(401).json({ error: 'Token tidak valid' });
+      }
+    }
+    return res.status(401).json({ error: 'Token tidak valid' });
+  }
+});
+
 
 
 function mapCartRows(rows) {

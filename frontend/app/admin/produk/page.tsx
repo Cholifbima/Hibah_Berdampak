@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { apiUrl, formatRupiah } from "@/lib/api";
+import { apiUrl, formatRupiah, authFetch } from "@/lib/api";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   ShoppingBag, Search, Plus, Pencil, Trash2, Loader2,
@@ -138,7 +138,7 @@ function ProductModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (!token) { setErr("Silakan login ulang sebagai admin"); return; }
+    if (!token) { setErr("Sesi habis, silakan login ulang sebagai admin"); return; }
     setSaving(true);
     try {
       // Upload semua file baru secara berurutan
@@ -148,7 +148,7 @@ function ProductModal({
         for (const { file } of imageFiles) {
           const fd = new FormData();
           fd.append("image", file);
-          const upRes = await fetch(apiUrl("/upload-image"), {
+          const upRes = await authFetch(apiUrl("/upload-image"), {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: fd,
@@ -183,7 +183,7 @@ function ProductModal({
       };
       const url = isEdit ? apiUrl(`/products/${product!.id_product}`) : apiUrl("/products");
       const method = isEdit ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -381,7 +381,7 @@ function DeleteConfirm({ product, token, onClose, onDelete }: { product: Product
   async function handleDelete() {
     setLoading(true);
     try {
-      await fetch(apiUrl(`/products/${product.id_product}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      await authFetch(apiUrl(`/products/${product.id_product}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       onDelete(product.id_product);
     } catch { setLoading(false); }
   }

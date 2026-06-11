@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { apiUrl, formatRupiah } from "@/lib/api";
+import { apiUrl, formatRupiah, authFetch } from "@/lib/api";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   ShoppingBag, Search, Filter, Loader2, ChevronDown,
@@ -125,7 +125,7 @@ function OrderCard({ order, token, onUpdate }: { order: Order; token: string; on
   async function handleUpdate(newStatus: string) {
     setUpdating(true);
     try {
-      const res = await fetch(apiUrl(`/orders/${order.id_order}/status`), {
+      const res = await authFetch(apiUrl(`/orders/${order.id_order}/status`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status_pesanan: newStatus }),
@@ -221,7 +221,7 @@ export default function AdminPesananPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/admin/orders"), { headers: { Authorization: `Bearer ${token}` } });
+      const res = await authFetch(apiUrl("/admin/orders"), { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setOrders(await res.json());
     } catch (err) { console.error(err); }
     setLoading(false);

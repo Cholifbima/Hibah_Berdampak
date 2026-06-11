@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, authFetch } from "@/lib/api";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   ShoppingBag, Search, Loader2, UserCircle2, Shield,
@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(apiUrl("/admin/users"), { headers: { Authorization: `Bearer ${token}` } });
+      const res = await authFetch(apiUrl("/admin/users"), { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setUsers(await res.json());
     } catch { /* empty */ }
     setLoading(false);

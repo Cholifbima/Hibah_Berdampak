@@ -2,7 +2,7 @@
 
 
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 
 
 
@@ -103,6 +103,40 @@ function loadToken(): string | null {
 
 }
 
+/**
+ * Decode JWT payload tanpa library tambahan untuk cek expiration client-side.
+ */
+function decodeJwtPayload(token: string): { exp?: number; id?: number; role?: string } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cek apakah token sudah expired berdasarkan exp claim.
+ */
+function isTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return true;
+  // Tambah buffer 30 detik untuk menghindari race condition
+  return Date.now() >= (payload.exp * 1000 - 30_000);
+}
+
+/**
+ * Cek apakah token akan expired dalam waktu dekat (< 1 hari).
+ * Digunakan untuk proactive refresh.
+ */
+function isTokenExpiringSoon(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return true;
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  return Date.now() >= (payload.exp * 1000 - oneDayMs);
+}
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -113,17 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [loading, setLoading] = useState(true);
 
-
-
-  useEffect(() => {
-
-    setUser(loadUser());
-
-    setToken(loadToken());
-
-    setLoading(false);
-
-  }, []);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isVerifyingRef = useRef(false);
 
 
 
@@ -136,6 +161,181 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
 
   }, []);
+
+  const logout = useCallback(() => {
+    clearSession();
+    setUser(null);
+    setToken(null);
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Coba refresh token. Return true jika berhasil, false jika gagal.
+   */
+  const tryRefreshToken = useCallback(async (currentToken: string): Promise<boolean> => {
+    try {
+      const res = await fetch(apiUrl("/auth/refresh"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` },
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.token && data.user) {
+        handleAuthResponse(data);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [handleAuthResponse]);
+
+  /**
+   * Setup timer untuk proactive refresh sebelum token expired.
+   */
+  const scheduleTokenRefresh = useCallback((currentToken: string) => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    const payload = decodeJwtPayload(currentToken);
+    if (!payload?.exp) return;
+
+    // Refresh 1 jam sebelum expired
+    const refreshAt = (payload.exp * 1000) - (60 * 60 * 1000);
+    const delay = refreshAt - Date.now();
+
+    if (delay <= 0) {
+      // Token sudah mendekati expired, langsung refresh
+      tryRefreshToken(currentToken);
+      return;
+    }
+
+    // Max timeout ~24 hari (setTimeout limit), tapi kita cap di 12 jam
+    const cappedDelay = Math.min(delay, 12 * 60 * 60 * 1000);
+
+    refreshTimerRef.current = setTimeout(() => {
+      const latestToken = loadToken();
+      if (latestToken) {
+        tryRefreshToken(latestToken);
+      }
+    }, cappedDelay);
+  }, [tryRefreshToken]);
+
+  /**
+   * Verifikasi token saat app pertama kali load.
+   * Flow: 
+   * 1. Cek ada token di localStorage?
+   * 2. Cek token expired secara client-side?
+   *    - Jika belum expired → verify ke backend → jika OK, pakai. Jika 401, logout.
+   *    - Jika sudah expired → coba refresh → jika OK, pakai token baru. Jika gagal, logout.
+   * 3. Jika token masih valid tapi expiring soon → proactive refresh
+   */
+  useEffect(() => {
+    async function verifyStoredToken() {
+      if (isVerifyingRef.current) return;
+      isVerifyingRef.current = true;
+
+      const storedToken = loadToken();
+      const storedUser = loadUser();
+
+      if (!storedToken || !storedUser) {
+        clearSession();
+        setUser(null);
+        setToken(null);
+        setLoading(false);
+        isVerifyingRef.current = false;
+        return;
+      }
+
+      // Quick client-side check
+      if (isTokenExpired(storedToken)) {
+        // Token sudah expired, coba refresh (grace period 24 jam di backend)
+        console.log("[Auth] Token expired, mencoba refresh...");
+        const refreshed = await tryRefreshToken(storedToken);
+        if (!refreshed) {
+          console.log("[Auth] Refresh gagal, auto-logout");
+          clearSession();
+          setUser(null);
+          setToken(null);
+        }
+        setLoading(false);
+        isVerifyingRef.current = false;
+        return;
+      }
+
+      // Token belum expired secara client-side, verify ke backend
+      try {
+        const res = await fetch(apiUrl("/auth/verify"), {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // Update user data dari database (mungkin ada perubahan)
+          saveSession(storedToken, data.user);
+          setUser(data.user);
+          setToken(storedToken);
+
+          // Schedule proactive refresh jika token expiring soon
+          if (isTokenExpiringSoon(storedToken)) {
+            console.log("[Auth] Token expiring soon, proactive refresh...");
+            await tryRefreshToken(storedToken);
+          } else {
+            scheduleTokenRefresh(storedToken);
+          }
+        } else {
+          // Backend menolak token (mungkin JWT_SECRET berubah, user dihapus, dll)
+          console.log("[Auth] Verify gagal, mencoba refresh...");
+          const refreshed = await tryRefreshToken(storedToken);
+          if (!refreshed) {
+            console.log("[Auth] Refresh juga gagal, auto-logout");
+            clearSession();
+            setUser(null);
+            setToken(null);
+          }
+        }
+      } catch (err) {
+        // Network error — gunakan data offline (jangan logout, nanti retry saat ada koneksi)
+        console.warn("[Auth] Verify gagal (network?), pakai cached data:", err);
+        setUser(storedUser);
+        setToken(storedToken);
+      }
+
+      setLoading(false);
+      isVerifyingRef.current = false;
+    }
+
+    verifyStoredToken();
+
+    // Listen untuk events dari authFetch (api.ts)
+    function handleForceLogout() {
+      setUser(null);
+      setToken(null);
+    }
+
+    function handleTokenRefreshed(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.token && detail?.user) {
+        setUser(detail.user);
+        setToken(detail.token);
+      }
+    }
+
+    window.addEventListener("auth-force-logout", handleForceLogout);
+    window.addEventListener("auth-token-refreshed", handleTokenRefreshed);
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+      window.removeEventListener("auth-force-logout", handleForceLogout);
+      window.removeEventListener("auth-token-refreshed", handleTokenRefreshed);
+    };
+  }, [tryRefreshToken, scheduleTokenRefresh]);
 
 
 
@@ -156,8 +356,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) throw new Error(data.error || "Gagal login");
 
     handleAuthResponse(data);
+    scheduleTokenRefresh(data.token);
 
-  }, [handleAuthResponse]);
+  }, [handleAuthResponse, scheduleTokenRefresh]);
 
 
 
@@ -173,8 +374,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) throw new Error(data.error || "Gagal membuat akun");
 
     handleAuthResponse(data);
+    scheduleTokenRefresh(data.token);
 
-  }, [handleAuthResponse]);
+  }, [handleAuthResponse, scheduleTokenRefresh]);
 
 
 
@@ -195,8 +397,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) throw new Error(data.error || "Gagal login dengan Google");
 
     handleAuthResponse(data);
+    scheduleTokenRefresh(data.token);
 
-  }, [handleAuthResponse]);
+  }, [handleAuthResponse, scheduleTokenRefresh]);
 
   const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
     if (!token) throw new Error("Tidak ada token");
@@ -222,12 +425,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveSession(token, updated);
     setUser(updated);
   }, [token]);
-
-  const logout = useCallback(() => {
-    clearSession();
-    setUser(null);
-    setToken(null);
-  }, []);
 
 
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { apiUrl, formatRupiah } from "@/lib/api";
+import { apiUrl, formatRupiah, authFetch } from "@/lib/api";
 import {
   Menu,
   X,
@@ -204,8 +204,8 @@ export default function AdminDashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [statsRes, trenRes] = await Promise.all([
-        fetch(apiUrl("/admin/stats"), { headers }),
-        fetch(apiUrl("/admin/tren-penjualan"), { headers }),
+        authFetch(apiUrl("/admin/stats"), { headers }),
+        authFetch(apiUrl("/admin/tren-penjualan"), { headers }),
       ]);
       if (statsRes.ok) setStats(await statsRes.json());
       if (trenRes.ok) setTren(await trenRes.json());
