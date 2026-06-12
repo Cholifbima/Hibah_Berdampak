@@ -9,17 +9,17 @@ const STATS = [
 
 export default function StatsBar() {
   return (
-    <div className="bg-[#163f73] py-4 sm:py-5">
+    <div className="bg-white py-5 sm:py-6 shadow-sm relative z-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-white/15">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-gray-100">
           {STATS.map(({ icon: Icon, value, label }) => (
             <div key={label} className="flex items-center gap-3 sm:justify-center sm:px-6">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
-                <Icon className="h-4 w-4 text-white" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e9f4ff]">
+                <Icon className="h-5 w-5 text-[#163f73]" />
               </div>
               <div>
-                <p className="text-sm font-extrabold text-white sm:text-base">{value}</p>
-                <p className="text-[10px] leading-tight text-white/60 sm:text-[11px]">{label}</p>
+                <p className="text-sm font-extrabold text-[#163f73] sm:text-base">{value}</p>
+                <p className="text-[10px] leading-tight text-gray-500 sm:text-[11px] font-medium">{label}</p>
               </div>
             </div>
           ))}

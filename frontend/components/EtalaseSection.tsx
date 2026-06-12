@@ -28,18 +28,12 @@ export default function EtalaseSection({ products }: EtalaseSectionProps) {
         <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:mt-12">
           {display.map((product, i) => {
             const thumbnail = getProductThumbnail(product.gambar_url);
-            const hasDiscount = product.discounts.length > 0;
-            const lowestGrosir = hasDiscount
-              ? Math.min(...product.discounts.map((d) => d.harga_grosir))
-              : null;
-            const discountPercent =
-              hasDiscount && lowestGrosir
-                ? Math.round(
-                    ((product.harga_satuan - lowestGrosir) /
-                      product.harga_satuan) *
-                      100
-                  )
-                : 0;
+            const hasDiscount = product.harga_asli && product.harga_satuan && product.harga_asli > product.harga_satuan;
+            
+            const calculatedDiscount = hasDiscount
+              ? Math.round(((product.harga_asli! - product.harga_satuan) / product.harga_asli!) * 100)
+              : 0;
+            const discountPercent = calculatedDiscount > 0 ? calculatedDiscount : (product.diskon_persen ?? 0);
 
             return (
               <ScrollReveal key={product.id_product} delay={i * 60} direction="up">
@@ -69,7 +63,7 @@ export default function EtalaseSection({ products }: EtalaseSectionProps) {
                         </span>
                       </div>
                     )}
-                    {hasDiscount && discountPercent > 0 && product.stok > 0 && (
+                    {hasDiscount && product.stok > 0 && (
                       <div className="absolute top-2 right-2 rounded-lg bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
                         -{discountPercent}%
                       </div>
@@ -82,15 +76,13 @@ export default function EtalaseSection({ products }: EtalaseSectionProps) {
                       {product.nama_produk}
                     </h3>
 
-                    {hasDiscount && (
+                    {hasDiscount && product.harga_asli && (
                       <p className="mt-1.5 text-[10px] text-gray-400 line-through">
-                        {formatRupiah(product.harga_satuan)}
+                        {formatRupiah(product.harga_asli)}
                       </p>
                     )}
                     <p className="mt-0.5 text-sm font-extrabold text-[#163f73] sm:text-base">
-                      {hasDiscount && lowestGrosir
-                        ? formatRupiah(lowestGrosir)
-                        : formatRupiah(product.harga_satuan)}
+                      {formatRupiah(product.harga_satuan)}
                     </p>
 
                     <div className="mt-1.5 flex items-center gap-1">

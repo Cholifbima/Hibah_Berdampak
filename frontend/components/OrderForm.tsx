@@ -501,7 +501,7 @@ export default function OrderForm() {
           </div>
         </div>
 
-        {/* Back link & Lazada */}
+        {/* Back link */}
         <div className="mt-4 flex items-center justify-between">
           <Link
             href="/keranjang"
@@ -509,22 +509,6 @@ export default function OrderForm() {
           >
             ← Kembali ke Keranjang
           </Link>
-          <a
-            href="https://www.lazada.co.id/shop/topassist"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm hover:shadow-md transition-shadow"
-            title="Kunjungi kami di Lazada"
-          >
-            <span className="text-[11px] text-gray-500">Juga tersedia di</span>
-            <Image
-              src="/assets/icons/IkonHibah/lazada.png"
-              alt="Lazada"
-              width={60}
-              height={20}
-              className="h-5 w-auto object-contain"
-            />
-          </a>
         </div>
       </form>
     </div>

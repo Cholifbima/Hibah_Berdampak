@@ -290,7 +290,31 @@ function ProductModal({
                 placeholder={f.placeholder}
                 required={f.required}
                 value={form[f.key as keyof typeof form]}
-                onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((p) => {
+                    const next = { ...p, [f.key]: val };
+                    
+                    // Auto-calculate logic
+                    if (f.key === "harga_satuan" || f.key === "harga_asli") {
+                      const real = Number(next.harga_satuan);
+                      const asli = Number(next.harga_asli);
+                      if (asli > 0 && asli > real) {
+                        next.diskon_persen = String(Math.round(((asli - real) / asli) * 100));
+                      } else {
+                        next.diskon_persen = "";
+                      }
+                    } else if (f.key === "diskon_persen") {
+                      const diskon = Number(val);
+                      const asli = Number(next.harga_asli);
+                      if (asli > 0 && diskon >= 0 && diskon <= 100) {
+                        next.harga_satuan = String(Math.round(asli - (asli * diskon / 100)));
+                      }
+                    }
+                    
+                    return next;
+                  });
+                }}
                 min={f.type === "number" ? "0" : undefined}
                 max={f.key === "rating" ? "5" : f.key === "diskon_persen" ? "100" : undefined}
                 step={f.key === "rating" ? "0.1" : f.type === "number" ? "1" : undefined}

@@ -10,11 +10,14 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const hasGrosir = product.harga_grosir && product.harga_grosir > 0;
-  const hasDiskon = product.diskon_persen && product.diskon_persen > 0;
+  const hasDiskon = product.harga_asli && product.harga_satuan && product.harga_asli > product.harga_satuan;
   const thumbnail = getProductThumbnail(product.gambar_url);
   const hasImage = !!thumbnail;
 
-  const discountPercent = product.diskon_persen ?? 0;
+  const calculatedDiscount = hasDiskon
+    ? Math.round(((product.harga_asli! - product.harga_satuan) / product.harga_asli!) * 100)
+    : 0;
+  const discountPercent = calculatedDiscount > 0 ? calculatedDiscount : (product.diskon_persen ?? 0);
 
   return (
     <Link

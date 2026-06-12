@@ -1,13 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ChatBox from "@/components/ChatBox";
 import { fetchProducts, type Product } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { Loader2 } from "lucide-react";
 
 export default function KonsultanPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Proteksi rute: jika belum login, arahkan ke /login
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?redirect=/konsultan");
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,6 +35,21 @@ export default function KonsultanPage() {
   }, []);
 
   const activeProducts = products.filter((p) => p.nama_produk.trim() !== "");
+
+  // Tampilkan loading screen saat mengecek sesi auth
+  if (loading || !user) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex min-h-screen items-center justify-center bg-[#e9f4ff] pt-16">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-[#163f73]" />
+            <p className="text-sm font-semibold text-[#163f73]">Memeriksa sesi...</p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
