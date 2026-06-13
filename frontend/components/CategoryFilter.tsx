@@ -8,30 +8,24 @@ interface CategoryFilterProps {
 
 export default function CategoryFilter({ categories, selected, onSelect }: CategoryFilterProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-      <button
-        onClick={() => onSelect("")}
-        className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors sm:text-sm ${
-          selected === ""
-            ? "bg-[#163f73] text-white"
-            : "bg-white text-[#163f73] border border-[#163f73]/20 hover:bg-[#e9f4ff]"
-        }`}
+    <div className="relative">
+      <select
+        value={selected}
+        onChange={(e) => onSelect(e.target.value)}
+        className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-2.5 pr-10 text-sm font-semibold text-gray-700 focus:border-[#163f73] focus:outline-none focus:ring-1 focus:ring-[#163f73]/30 sm:w-64"
       >
-        Semua
-      </button>
-      {categories.map((cat) => (
-        <button
-          key={cat}
-          onClick={() => onSelect(cat)}
-          className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors sm:text-sm ${
-            selected === cat
-              ? "bg-[#163f73] text-white"
-              : "bg-white text-[#163f73] border border-[#163f73]/20 hover:bg-[#e9f4ff]"
-          }`}
-        >
-          {cat}
-        </button>
-      ))}
+        <option value="">Semua Kategori</option>
+        {categories.map((cat) => (
+          <option key={cat} value={cat}>
+            {cat}
+          </option>
+        ))}
+      </select>
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 sm:right-auto sm:left-[220px]">
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
     </div>
   );
 }

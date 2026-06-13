@@ -9,20 +9,29 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const hasGrosir = product.harga_grosir && product.harga_grosir > 0;
+  // Logika diskon coret (retail)
   const hasDiskon = product.harga_asli && product.harga_satuan && product.harga_asli > product.harga_satuan;
-  const thumbnail = getProductThumbnail(product.gambar_url);
-  const hasImage = !!thumbnail;
-
   const calculatedDiscount = hasDiskon
     ? Math.round(((product.harga_asli! - product.harga_satuan) / product.harga_asli!) * 100)
     : 0;
   const discountPercent = calculatedDiscount > 0 ? calculatedDiscount : (product.diskon_persen ?? 0);
 
+  // Logika harga grosir (valid hanya jika lebih murah dari eceran)
+  const validDiscounts = product.discounts?.filter(d => d.harga_grosir < product.harga_satuan) || [];
+  const firstDiscount = validDiscounts.length > 0 
+    ? validDiscounts.reduce((min, d) => d.min_qty < min.min_qty ? d : min, validDiscounts[0]) 
+    : null;
+  const showGrosir = !!firstDiscount || (product.min_grosir && product.harga_grosir && product.harga_grosir < product.harga_satuan);
+  const grosirMin = firstDiscount?.min_qty || product.min_grosir;
+  const grosirHarga = firstDiscount?.harga_grosir || product.harga_grosir;
+
+  const thumbnail = getProductThumbnail(product.gambar_url);
+  const hasImage = !!thumbnail;
+
   return (
     <Link
       href={`/toko/detail?id=${product.id_product}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100 transition-all duration-300 hover:-translate-y-2 hover:ring-[#163f73]/25 hover:shadow-2xl hover:shadow-[#163f73]/12"
+      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10"
     >
       {/* Badge Best Seller */}
       <div className="absolute top-2.5 left-2.5 z-10">
@@ -44,7 +53,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       )}
 
       {/* Gambar produk */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#dbeeff] via-[#eaf4ff] to-[#f5f9ff]">
+      <div className="relative aspect-square overflow-hidden bg-white border-b border-gray-100">
         {hasImage ? (
           <Image
             src={thumbnail!}
@@ -71,48 +80,54 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Info produk */}
-      <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5 sm:px-3.5 sm:pb-3.5 sm:pt-3">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
         {/* Nama */}
-        <h3 className="text-[11px] font-bold leading-snug text-gray-800 line-clamp-2 sm:text-[13px]">
+        <h3 className="text-xs font-bold leading-relaxed text-gray-800 line-clamp-2 sm:text-sm">
           {product.nama_produk}
         </h3>
 
-        {/* Harga */}
-        <div className="mt-2">
-          {hasDiskon && product.harga_asli && (
-            <p className="text-[10px] text-gray-400 line-through sm:text-[11px]">
-              {formatRupiah(product.harga_asli)}
+        {/* Wrapper Bawah (Harga, Grosir, Rating, Button) yang selalu rata */}
+        <div className="mt-auto flex flex-col pt-2">
+          {/* Harga */}
+          <div className="flex flex-col">
+            {hasDiskon && product.harga_asli && (
+              <p className="text-[10px] text-gray-400 line-through sm:text-xs">
+                {formatRupiah(product.harga_asli)}
+              </p>
+            )}
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-extrabold text-[#163f73] sm:text-base">
+                {formatRupiah(product.harga_satuan)}
+              </p>
+            </div>
+          </div>
+
+          {/* Grosir info strip (Clean Text) */}
+          {showGrosir && grosirMin && grosirHarga && (
+            <p className="mt-1 text-[10px] font-semibold text-[#0066ff] sm:text-xs">
+              Grosir ≥{grosirMin} pcs: {formatRupiah(grosirHarga)}
             </p>
           )}
-          <p className="text-sm font-extrabold text-[#163f73] sm:text-base">
-            {formatRupiah(product.harga_satuan)}
-          </p>
-        </div>
 
-        {/* Grosir info strip */}
-        {hasGrosir && product.min_grosir && (
-          <div className="mt-1.5 rounded-lg border border-[#c3dcff] bg-[#eef6ff] px-2 py-1">
-            <p className="text-[9px] font-bold text-[#163f73] sm:text-[10px]">
-              🏷️ Grosir ≥{product.min_grosir} pcs · {formatRupiah(product.harga_grosir ?? 0)}/pcs
-            </p>
+          {/* Wrapper Bottom (Rating & Button) */}
+          <div className="mt-3 flex flex-col gap-2.5">
+            {/* Rating & Stok */}
+            <div className="flex items-center gap-1.5">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-[10px] font-bold text-gray-700 sm:text-xs">
+                {(product.rating ?? 5).toFixed(1)}
+              </span>
+              <span className="text-gray-300">·</span>
+              <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                {product.stok > 0 ? `${product.stok} stok` : "Habis"}
+              </span>
+            </div>
+
+            {/* CTA Button */}
+            <span className="block w-full rounded-xl bg-[#163f73] py-2 text-center text-[10px] font-bold uppercase tracking-wider text-white shadow-sm transition-all duration-200 group-hover:bg-[#0066ff] sm:text-xs">
+              Lihat Produk
+            </span>
           </div>
-        )}
-
-        {/* Rating & Stok */}
-        <div className="mt-2 flex items-center gap-1.5">
-          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-[10px] font-semibold text-gray-600 sm:text-[11px]">{(product.rating ?? 5).toFixed(1)}</span>
-          <span className="text-gray-200">·</span>
-          <span className="text-[10px] text-gray-400 sm:text-[11px]">
-            {product.stok > 0 ? `${product.stok} stok` : "Habis"}
-          </span>
-        </div>
-
-        {/* CTA Button */}
-        <div className="mt-2.5">
-          <span className="block w-full rounded-xl bg-gradient-to-r from-[#163f73] to-[#1e5799] py-2 text-center text-[10px] font-bold uppercase tracking-wide text-white shadow-sm transition-all duration-200 group-hover:shadow-md group-hover:brightness-110 sm:text-[11px]">
-            Lihat Produk
-          </span>
         </div>
       </div>
     </Link>

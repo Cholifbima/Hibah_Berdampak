@@ -11,18 +11,27 @@ interface ProductCardShopProps {
 export default function ProductCardShop({ product }: ProductCardShopProps) {
   const thumbnail = getProductThumbnail(product.gambar_url);
   const hasImage = !!thumbnail;
-  const hasDiscount = product.discounts.length > 0;
-  const lowestGrosir = hasDiscount
-    ? Math.min(...product.discounts.map((d) => d.harga_grosir))
-    : null;
-  const discountPercent = hasDiscount && lowestGrosir
-    ? Math.round(((product.harga_satuan - lowestGrosir) / product.harga_satuan) * 100)
+  
+  // Logika diskon coret (retail)
+  const hasDiskon = product.harga_asli && product.harga_satuan && product.harga_asli > product.harga_satuan;
+  const calculatedDiscount = hasDiskon
+    ? Math.round(((product.harga_asli! - product.harga_satuan) / product.harga_asli!) * 100)
     : 0;
+  const discountPercent = calculatedDiscount > 0 ? calculatedDiscount : (product.diskon_persen ?? 0);
+
+  // Logika harga grosir (valid hanya jika lebih murah dari eceran)
+  const validDiscounts = product.discounts?.filter(d => d.harga_grosir < product.harga_satuan) || [];
+  const firstDiscount = validDiscounts.length > 0 
+    ? validDiscounts.reduce((min, d) => d.min_qty < min.min_qty ? d : min, validDiscounts[0]) 
+    : null;
+  const showGrosir = !!firstDiscount || (product.min_grosir && product.harga_grosir && product.harga_grosir < product.harga_satuan);
+  const grosirMin = firstDiscount?.min_qty || product.min_grosir;
+  const grosirHarga = firstDiscount?.harga_grosir || product.harga_grosir;
 
   return (
-    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-[#163f73]/15">
+    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10">
       {/* Gambar produk */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-white to-[#f5f9ff]">
+      <div className="relative aspect-square overflow-hidden bg-white border-b border-gray-100">
         {hasImage ? (
           <Image
             src={thumbnail!}
@@ -46,7 +55,7 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
           </div>
         )}
 
-        {hasDiscount && product.stok > 0 && (
+        {showGrosir && product.stok > 0 && (
           <div className="absolute top-2 right-2">
             <span className="rounded-lg bg-[#163f73] px-2 py-0.5 text-[9px] font-bold text-white sm:text-[10px]">
               GROSIR
@@ -55,37 +64,52 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex flex-1 flex-col p-2.5 sm:p-3">
-        <h3 className="text-[11px] font-semibold leading-snug text-[#373737] line-clamp-2 sm:text-xs">
+      {/* Info produk */}
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        {/* Nama */}
+        <h3 className="text-xs font-bold leading-relaxed text-[#373737] line-clamp-2 sm:text-sm">
           {product.nama_produk}
         </h3>
 
-        {hasDiscount && (
-          <p className="mt-1 text-[10px] text-gray-400 line-through">
-            {formatRupiah(product.harga_satuan)}
-          </p>
-        )}
-        <div className="mt-0.5 flex items-center gap-1.5">
-          <p className="text-xs font-extrabold text-[#163f73] sm:text-sm">
-            {hasDiscount && lowestGrosir
-              ? formatRupiah(lowestGrosir)
-              : formatRupiah(product.harga_satuan)}
-          </p>
-          {hasDiscount && discountPercent > 0 && (
-            <span className="rounded bg-[#c3dcff] px-1 py-0.5 text-[9px] font-extrabold text-[#163f73]">
-              -{discountPercent}%
-            </span>
-          )}
-        </div>
+        {/* Wrapper Bawah (Harga, Grosir, Rating) yang selalu sejajar */}
+        <div className="mt-auto flex flex-col pt-2">
+          {/* Harga */}
+          <div className="flex flex-col">
+            {hasDiskon && product.harga_asli && (
+              <p className="text-[10px] text-gray-400 line-through sm:text-xs">
+                {formatRupiah(product.harga_asli)}
+              </p>
+            )}
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-extrabold text-[#163f73] sm:text-base">
+                {formatRupiah(product.harga_satuan)}
+              </p>
+              {hasDiskon && discountPercent > 0 && (
+                <span className="rounded bg-[#c3dcff] px-1 py-0.5 text-[9px] font-extrabold text-[#163f73]">
+                  -{discountPercent}%
+                </span>
+              )}
+            </div>
+          </div>
 
-        <div className="mt-1.5 flex items-center gap-1">
-          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-[10px] text-gray-500 sm:text-[11px]">{(product.rating ?? 5).toFixed(1)}</span>
-          <span className="mx-0.5 text-gray-300">·</span>
-          <span className="text-[10px] text-gray-400 sm:text-[11px]">
-            {product.stok > 0 ? `Stok ${product.stok}` : "Habis"}
-          </span>
+          {/* Grosir info strip (Clean Text) */}
+          {showGrosir && grosirMin && grosirHarga && (
+            <p className="mt-1 text-[10px] font-semibold text-[#0066ff] sm:text-xs">
+              Grosir ≥{grosirMin} pcs: {formatRupiah(grosirHarga)}
+            </p>
+          )}
+
+          {/* Rating & Stok */}
+          <div className="mt-3 flex items-center gap-1.5">
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+            <span className="text-[10px] font-bold text-gray-700 sm:text-xs">
+              {(product.rating ?? 5).toFixed(1)}
+            </span>
+            <span className="mx-0.5 text-gray-300">·</span>
+            <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+              {product.stok > 0 ? `Stok ${product.stok}` : "Habis"}
+            </span>
+          </div>
         </div>
       </div>
     </Link>

@@ -251,7 +251,8 @@ export default function OrderForm() {
     e.preventDefault();
     if (!isValid || !user || !token) return;
 
-    let orderNum = getNextOrderNumber(); // Fallback if DB fails completely
+    let orderNum = `#ORD-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`; 
+    
     const fullAlamat = [alamat, detailAlamat, provinsi, country]
       .filter(Boolean)
       .join(", ");
@@ -264,7 +265,7 @@ export default function OrderForm() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          // kode_pesanan tidak dikirim lagi, biar backend yang generate
+          kode_pesanan: orderNum, // KIRIM KEMBALI KODE UNIK agar backend lama tidak menolak (400)
           nama_penerima: nama,
           alamat_pengiriman: fullAlamat,
           no_telepon: telepon,
