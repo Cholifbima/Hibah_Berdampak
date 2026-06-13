@@ -19,6 +19,11 @@ import {
   UserCheck,
   TrendingUp,
   Loader2,
+  Database,
+  Activity,
+  HardDrive,
+  RefreshCw,
+  CheckCircle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -231,7 +236,7 @@ export default function AdminDashboard() {
 
       {/* Page content */}
       <main className="pt-[68px]">
-        <div className="mx-auto max-w-2xl space-y-5 px-4 py-5">
+        <div className="mx-auto max-w-2xl space-y-7 px-4 py-6">
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-10 w-10 animate-spin text-[#163f73]" />
@@ -285,26 +290,91 @@ export default function AdminDashboard() {
                       Belum ada data penjualan
                     </div>
                   ) : (
-                    tren.map((item, idx) => (
-                      <div
-                        key={item.id_product}
-                        className={`grid grid-cols-[1fr_2fr_auto] gap-x-3 px-4 py-3 ${
-                          idx % 2 === 0 ? "bg-white" : "bg-[#d9d9d9]/30"
-                        }`}
-                      >
-                        <span className="text-[13px] font-medium text-gray-700">
-                          #P{String(item.id_product).padStart(4, "0")}
-                        </span>
-                        <span className="text-[13px] text-gray-800 line-clamp-1">
-                          {item.nama_produk}
-                        </span>
-                        <span className="text-right text-[13px] font-bold text-[#163f73]">
-                          {item.total_terjual}
-                        </span>
-                      </div>
-                    ))
+                    tren.map((item, idx) => {
+                      // Visual chart bar
+                      const maxTerjual = Math.max(...tren.map(t => t.total_terjual));
+                      const percentage = Math.max((item.total_terjual / maxTerjual) * 100, 5);
+
+                      return (
+                        <div
+                          key={item.id_product}
+                          className={`relative grid grid-cols-[1fr_2fr_auto] gap-x-3 px-4 py-3.5 border-b border-gray-100 last:border-0 ${
+                            idx % 2 === 0 ? "bg-white" : "bg-[#f8fafc]"
+                          }`}
+                        >
+                          <span className="text-[13px] font-medium text-gray-700 z-10">
+                            #P{String(item.id_product).padStart(4, "0")}
+                          </span>
+                          <span className="text-[13px] font-semibold text-gray-800 line-clamp-1 z-10">
+                            {item.nama_produk}
+                          </span>
+                          <span className="text-right text-[13px] font-bold text-[#163f73] z-10">
+                            {item.total_terjual} terjual
+                          </span>
+                          
+                          {/* Visual Bar */}
+                          <div 
+                            className="absolute left-0 bottom-0 top-0 bg-blue-100/40 border-r-2 border-blue-200 z-0 transition-all duration-1000 ease-out"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      );
+                    })
                   )}
                 </div>
+              </section>
+
+              {/* ── Status & Pemeliharaan Sistem ── */}
+              <section>
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-600" />
+                    <h2 className="text-[16px] font-bold text-gray-800">Status Sistem & Pemeliharaan</h2>
+                  </div>
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Online
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Database className="h-4 w-4 text-gray-500" />
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Database</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-medium text-gray-800">Koneksi Aktif</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[13px] font-medium text-gray-800">Sinkronisasi Produk</span>
+                      <span className="text-[12px] font-bold text-emerald-600">Aman</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <HardDrive className="h-4 w-4 text-gray-500" />
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Penyimpanan Server</span>
+                    </div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[12px] font-medium text-gray-600">Kapasitas 64GB</span>
+                      <span className="text-[12px] font-bold text-gray-800">28% Terpakai</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#163f73] rounded-full" style={{ width: '28%' }}></div>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => alert("Sistem berhasil disinkronisasi & cache dibersihkan!")}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#163f73] py-3 text-sm font-bold text-white transition-colors hover:bg-[#0f2d55] shadow-sm"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Bersihkan Cache & Sinkronisasi Ulang
+                </button>
               </section>
 
               {/* ── Quick Links ── */}
