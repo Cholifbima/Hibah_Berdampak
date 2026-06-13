@@ -30,6 +30,8 @@ interface Order {
   no_telepon: string;
   catatan: string;
   tanggal_pesanan: string;
+  nomor_resi?: string | null;
+  jenis_pengiriman?: string | null;
   details: OrderItem[];
   user: { nama_lengkap: string; username: string; email: string };
 }
@@ -122,13 +124,26 @@ function OrderCard({ order, token, onUpdate }: { order: Order; token: string; on
   const StatusIcon = cfg.icon;
   const nextStatuses = NEXT_STATUS[order.status_pesanan] ?? [];
 
+  const [resi, setResi] = useState(order.nomor_resi || "");
+  const [kurir, setKurir] = useState(order.jenis_pengiriman || "JNE");
+
   async function handleUpdate(newStatus: string) {
+    if (newStatus === "DIKIRIM" && !resi.trim()) {
+      alert("Harap masukkan nomor resi pengiriman!");
+      return;
+    }
     setUpdating(true);
     try {
+      const payload: any = { status_pesanan: newStatus };
+      if (newStatus === "DIKIRIM") {
+        payload.nomor_resi = resi;
+        payload.jenis_pengiriman = kurir;
+      }
+
       const res = await authFetch(apiUrl(`/orders/${order.id_order}/status`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status_pesanan: newStatus }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -163,6 +178,12 @@ function OrderCard({ order, token, onUpdate }: { order: Order; token: string; on
             <div><span className="text-gray-500">Telepon:</span> <span className="font-medium text-gray-800">{order.no_telepon || "-"}</span></div>
             <div className="col-span-2"><span className="text-gray-500">Alamat:</span> <span className="font-medium text-gray-800">{order.alamat_pengiriman}</span></div>
             {order.catatan && <div className="col-span-2"><span className="text-gray-500">Catatan:</span> <span className="font-medium text-gray-800">{order.catatan}</span></div>}
+            {order.nomor_resi && (
+              <div className="col-span-2 mt-1 rounded bg-blue-50 p-2 border border-blue-100">
+                <span className="text-gray-500 text-[11px] block mb-0.5">Pengiriman:</span>
+                <span className="font-bold text-[#163f73]">{order.jenis_pengiriman || "Kurir"} - {order.nomor_resi}</span>
+              </div>
+            )}
           </div>
 
           {/* Detail produk */}
@@ -184,22 +205,48 @@ function OrderCard({ order, token, onUpdate }: { order: Order; token: string; on
 
           {/* Update status */}
           {nextStatuses.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {nextStatuses.map((s) => {
-                const c = STATUS_CFG[s];
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    disabled={updating}
-                    onClick={() => handleUpdate(s)}
-                    className="flex items-center gap-1.5 rounded-lg border border-[#163f73] bg-[#163f73] px-3 py-1.5 text-[12px] font-bold text-white hover:bg-[#0f2d55] transition-colors disabled:opacity-50"
-                  >
-                    {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : <c.icon className="h-3 w-3" />}
-                    Tandai {c.label}
-                  </button>
-                );
-              })}
+            <div className="space-y-3 pt-2">
+              {/* Form Input Resi jika mau kirim */}
+              {nextStatuses.includes("DIKIRIM") && (
+                <div className="flex flex-col sm:flex-row gap-2 rounded-lg bg-gray-50 p-2 border border-gray-100">
+                  <input 
+                    type="text" 
+                    value={kurir} 
+                    onChange={(e) => setKurir(e.target.value)} 
+                    placeholder="Kurir (ex: JNE)" 
+                    className="w-full sm:w-24 rounded border border-gray-200 px-2 py-1.5 text-[11px] focus:outline-none focus:border-[#163f73]" 
+                  />
+                  <input 
+                    type="text" 
+                    value={resi} 
+                    onChange={(e) => setResi(e.target.value)} 
+                    placeholder="Masukkan Nomor Resi" 
+                    className="w-full flex-1 rounded border border-gray-200 px-2 py-1.5 text-[11px] focus:outline-none focus:border-[#163f73]" 
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {nextStatuses.map((s) => {
+                  const c = STATUS_CFG[s];
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={updating}
+                      onClick={() => handleUpdate(s)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-bold transition-colors disabled:opacity-50 ${
+                        s === "DIBATALKAN" 
+                          ? "border-red-200 bg-white text-red-600 hover:bg-red-50" 
+                          : "border-[#163f73] bg-[#163f73] text-white hover:bg-[#0f2d55]"
+                      }`}
+                    >
+                      {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : <c.icon className="h-3 w-3" />}
+                      Tandai {c.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
