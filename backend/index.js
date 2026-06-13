@@ -961,17 +961,18 @@ api.delete('/products/:id', adminMiddleware, async (req, res) => {
 
 api.post('/orders', authMiddleware, async (req, res) => {
   try {
-    const { kode_pesanan, nama_penerima, alamat_pengiriman, no_telepon, catatan, lat, lng, items } = req.body;
+    const { nama_penerima, alamat_pengiriman, no_telepon, catatan, lat, lng, items } = req.body;
 
-    if (!kode_pesanan || !nama_penerima || !alamat_pengiriman || !items?.length)
+    if (!nama_penerima || !alamat_pengiriman || !items?.length)
       return res.status(400).json({ error: 'Data pesanan tidak lengkap' });
 
     const total = items.reduce((s, i) => s + i.subtotal, 0);
+    const uniqueKode = `#ORD-${Date.now().toString().slice(-6)}${Math.floor(Math.random()*100)}`;
 
     const order = await prisma.order.create({
       data: {
         id_user: req.userId,
-        kode_pesanan,
+        kode_pesanan: uniqueKode,
         total_pembayaran: total,
         nama_penerima,
         alamat_pengiriman,
