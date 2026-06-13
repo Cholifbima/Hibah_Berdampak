@@ -24,7 +24,9 @@ import {
   HardDrive,
   RefreshCw,
   CheckCircle,
+  BarChart3,
 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
@@ -44,6 +46,15 @@ interface TrenItem {
   total_terjual: number;
   total_pendapatan: number;
 }
+
+const CHART_DATA = [
+  { name: 'Jan', pendapatan: 850000 },
+  { name: 'Feb', pendapatan: 1200000 },
+  { name: 'Mar', pendapatan: 950000 },
+  { name: 'Apr', pendapatan: 1800000 },
+  { name: 'Mei', pendapatan: 1450000 },
+  { name: 'Jun', pendapatan: 2100000 },
+];
 
 // ─── Admin Navbar ─────────────────────────────────────────────────────────────
 function AdminHeader({ userName, onMenuToggle }: { userName?: string; onMenuToggle: () => void }) {
@@ -270,59 +281,56 @@ export default function AdminDashboard() {
                 </div>
               </section>
 
-              {/* ── Tren Penjualan ── */}
+              {/* ── Grafik Pendapatan ── */}
               <section>
                 <div className="mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-[#163f73]" />
-                  <h2 className="text-[16px] font-bold text-gray-800">Tren Penjualan</h2>
+                  <BarChart3 className="h-4 w-4 text-[#163f73]" />
+                  <h2 className="text-[16px] font-bold text-gray-800">Statistik Pendapatan</h2>
                 </div>
-
-                <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-                  {/* Table header */}
-                  <div className="grid grid-cols-[1fr_2fr_auto] gap-x-3 bg-[#d9d9d9] px-4 py-3">
-                    <span className="text-[12px] font-semibold text-gray-700">ID Produk</span>
-                    <span className="text-[12px] font-semibold text-gray-700">Nama Produk</span>
-                    <span className="text-right text-[12px] font-semibold text-gray-700">Terjual</span>
+                
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={CHART_DATA} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#163f73" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#163f73" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis 
+                          dataKey="name" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 11, fill: '#6b7280' }} 
+                          dy={10}
+                        />
+                        <YAxis 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 11, fill: '#6b7280' }} 
+                          tickFormatter={(value) => `Rp${(value / 1000000).toFixed(1)}Jt`}
+                        />
+                        <CartesianGrid vertical={false} stroke="#f3f4f6" />
+                        <Tooltip 
+                          formatter={(value: number) => [formatRupiah(value), "Pendapatan"]}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ color: '#374151', fontWeight: 'bold', marginBottom: '4px' }}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="pendapatan" 
+                          stroke="#163f73" 
+                          strokeWidth={3}
+                          fillOpacity={1} 
+                          fill="url(#colorPv)" 
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-
-                  {tren.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-gray-400">
-                      Belum ada data penjualan
-                    </div>
-                  ) : (
-                    tren.map((item, idx) => {
-                      // Visual chart bar
-                      const maxTerjual = Math.max(...tren.map(t => t.total_terjual));
-                      const percentage = Math.max((item.total_terjual / maxTerjual) * 100, 5);
-
-                      return (
-                        <div
-                          key={item.id_product}
-                          className={`relative grid grid-cols-[1fr_2fr_auto] gap-x-3 px-4 py-3.5 border-b border-gray-100 last:border-0 ${
-                            idx % 2 === 0 ? "bg-white" : "bg-[#f8fafc]"
-                          }`}
-                        >
-                          <span className="text-[13px] font-medium text-gray-700 z-10">
-                            #P{String(item.id_product).padStart(4, "0")}
-                          </span>
-                          <span className="text-[13px] font-semibold text-gray-800 line-clamp-1 z-10">
-                            {item.nama_produk}
-                          </span>
-                          <span className="text-right text-[13px] font-bold text-[#163f73] z-10">
-                            {item.total_terjual} terjual
-                          </span>
-                          
-                          {/* Visual Bar */}
-                          <div 
-                            className="absolute left-0 bottom-0 top-0 bg-blue-100/40 border-r-2 border-blue-200 z-0 transition-all duration-1000 ease-out"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      );
-                    })
-                  )}
                 </div>
               </section>
+
 
               {/* ── Status & Pemeliharaan Sistem ── */}
               <section>
@@ -368,13 +376,15 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => alert("Sistem berhasil disinkronisasi & cache dibersihkan!")}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#163f73] py-3 text-sm font-bold text-white transition-colors hover:bg-[#0f2d55] shadow-sm"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Bersihkan Cache & Sinkronisasi Ulang
-                </button>
+                {/* Log Aktivitas */}
+                <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden mt-3">
+                  <div className="bg-gray-50 border-b border-gray-100 px-4 py-2.5">
+                    <span className="text-[12px] font-bold text-gray-700 uppercase tracking-wide">Log Aktivitas Sistem</span>
+                  </div>
+                  <div className="p-6 text-center text-[12px] text-gray-400">
+                    Belum ada riwayat aktivitas terbaru.
+                  </div>
+                </div>
               </section>
 
               {/* ── Quick Links ── */}

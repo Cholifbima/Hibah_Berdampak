@@ -251,20 +251,20 @@ export default function OrderForm() {
     e.preventDefault();
     if (!isValid || !user || !token) return;
 
-    const orderNum = getNextOrderNumber();
+    let orderNum = getNextOrderNumber(); // Fallback if DB fails completely
     const fullAlamat = [alamat, detailAlamat, provinsi, country]
       .filter(Boolean)
       .join(", ");
 
     try {
-      await authFetch(apiUrl("/orders"), {
+      const res = await authFetch(apiUrl("/orders"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          kode_pesanan: orderNum,
+          // kode_pesanan tidak dikirim lagi, biar backend yang generate
           nama_penerima: nama,
           alamat_pengiriman: fullAlamat,
           no_telepon: telepon,
@@ -279,8 +279,18 @@ export default function OrderForm() {
           })),
         }),
       });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.kode_pesanan) {
+          orderNum = data.kode_pesanan; // Pakai kode dari database
+        }
+      } else {
+        console.error("Gagal menyimpan ke database, tapi lanjut ke WA");
+      }
     } catch {
-      /* WA tetap dikirim meski DB gagal */
+      /* WA tetap dikirim meski DB gagal/down */
+      console.error("Database error, fallback ke WA saja");
     }
 
     // Save address to profile for future orders
