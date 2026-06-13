@@ -96,7 +96,7 @@ function SidebarMenu({ open, onClose, onLogout }: { open: boolean; onClose: () =
 }
 
 // ─── Status config ──────────────────────────────────────────────────────────
-const STATUS_LIST = ["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", "SELESAI", "DIBATALKAN"];
+const STATUS_LIST = ["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", "SELESAI", "MENUNGGU_PEMBATALAN", "DIBATALKAN"];
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   PENDING:      { label: "Pending",      color: "text-amber-700",  bg: "bg-amber-50 border-amber-200",   icon: Clock },
@@ -104,6 +104,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; ico
   DIPROSES:     { label: "Diproses",     color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200", icon: Package },
   DIKIRIM:      { label: "Dikirim",      color: "text-purple-700", bg: "bg-purple-50 border-purple-200", icon: Truck },
   SELESAI:      { label: "Selesai",      color: "text-green-700",  bg: "bg-green-50 border-green-200",   icon: CheckCircle },
+  MENUNGGU_PEMBATALAN: { label: "Request Batal", color: "text-orange-700", bg: "bg-orange-50 border-orange-200", icon: Clock },
   DIBATALKAN:   { label: "Dibatalkan",   color: "text-red-700",    bg: "bg-red-50 border-red-200",       icon: XCircle },
 };
 
@@ -111,13 +112,14 @@ const NEXT_STATUS: Record<string, string[]> = {
   PENDING:      ["DIKONFIRMASI", "DIBATALKAN"],
   DIKONFIRMASI: ["DIPROSES", "DIBATALKAN"],
   DIPROSES:     ["DIKIRIM"],
-  DIKIRIM:      ["SELESAI"],
+  DIKIRIM:      [],
   SELESAI:      [],
+  MENUNGGU_PEMBATALAN: ["DIBATALKAN", "PENDING"],
   DIBATALKAN:   [],
 };
 
 // ─── Order Card ─────────────────────────────────────────────────────────────
-function OrderCard({ order, token, onUpdate }: { order: Order; token: string; onUpdate: (updated: Order) => void }) {
+function OrderCard({ order, token, onUpdate, onDelete }: { order: Order; token: string; onUpdate: (updated: Order) => void, onDelete: (id: number) => void }) {
   const [open, setOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   const cfg = STATUS_CFG[order.status_pesanan] ?? STATUS_CFG.PENDING;
@@ -249,6 +251,29 @@ function OrderCard({ order, token, onUpdate }: { order: Order; token: string; on
               </div>
             </div>
           )}
+          
+          <div className="pt-3 mt-3 border-t border-gray-100 flex justify-end">
+            <button
+              type="button"
+              disabled={updating}
+              onClick={async () => {
+                if (!confirm(`Hapus pesanan ${order.kode_pesanan} permanen?`)) return;
+                setUpdating(true);
+                try {
+                  const res = await fetch(apiUrl(`/orders/${order.id_order}`), {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (res.ok) onDelete(order.id_order);
+                  else alert("Gagal menghapus pesanan");
+                } catch { alert("Error jaringan"); }
+                setUpdating(false);
+              }}
+              className="flex items-center gap-1 text-[11px] font-bold text-red-500 hover:underline disabled:opacity-50"
+            >
+              Hapus Riwayat Pesanan
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -332,7 +357,13 @@ export default function AdminPesananPage() {
           ) : (
             <div className="space-y-3">
               {filtered.map((o) => (
-                <OrderCard key={o.id_order} order={o} token={token!} onUpdate={handleUpdate} />
+                <OrderCard 
+                  key={o.id_order} 
+                  order={o} 
+                  token={token!} 
+                  onUpdate={handleUpdate} 
+                  onDelete={(id) => setOrders((prev) => prev.filter(order => order.id_order !== id))}
+                />
               ))}
             </div>
           )}

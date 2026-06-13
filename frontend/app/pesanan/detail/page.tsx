@@ -45,15 +45,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
   DIPROSES: { label: "Diproses", color: "text-indigo-600", icon: Package },
   DIKIRIM: { label: "Dalam Pengiriman", color: "text-purple-600", icon: Truck },
   SELESAI: { label: "Selesai", color: "text-green-600", icon: CheckCircle },
+  MENUNGGU_PEMBATALAN: { label: "Menunggu Pembatalan", color: "text-orange-500", icon: Clock },
   DIBATALKAN: { label: "Dibatalkan", color: "text-red-600", icon: Clock },
 };
 
 function StatusTimeline({ status }: { status: string }) {
   const currentIdx = STATUS_STEPS.indexOf(status);
-  if (status === "DIBATALKAN") {
+  if (status === "DIBATALKAN" || status === "MENUNGGU_PEMBATALAN") {
     return (
-      <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-        <Clock className="h-4 w-4" /> Pesanan Dibatalkan
+      <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold ${status === 'DIBATALKAN' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>
+        <Clock className="h-4 w-4" /> {status === 'DIBATALKAN' ? 'Pesanan Dibatalkan' : 'Menunggu Persetujuan Admin untuk Dibatalkan'}
       </div>
     );
   }
@@ -142,6 +143,50 @@ function OrderDetailInner() {
       }
     } catch { /* ignore */ }
     setSaving(false);
+  }
+
+  const [canceling, setCanceling] = useState(false);
+  async function handleCancelRequest() {
+    if (!token || !order) return;
+    if (!confirm("Apakah Anda yakin ingin mengajukan pembatalan pesanan ini?")) return;
+    setCanceling(true);
+    try {
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/status`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status_pesanan: "MENUNGGU_PEMBATALAN" }),
+      });
+      if (res.ok) {
+        setOrder(await res.json());
+      } else {
+        alert("Gagal mengajukan pembatalan.");
+      }
+    } catch { 
+      alert("Terjadi kesalahan.");
+    }
+    setCanceling(false);
+  }
+
+  const [completing, setCompleting] = useState(false);
+  async function handleCompleteOrder() {
+    if (!token || !order) return;
+    if (!confirm("Apakah Anda yakin pesanan sudah diterima dengan baik?")) return;
+    setCompleting(true);
+    try {
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/status`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status_pesanan: "SELESAI" }),
+      });
+      if (res.ok) {
+        setOrder(await res.json());
+      } else {
+        alert("Gagal mengonfirmasi pesanan.");
+      }
+    } catch { 
+      alert("Terjadi kesalahan.");
+    }
+    setCompleting(false);
   }
 
   if (authLoading || loading) {
@@ -331,6 +376,41 @@ function OrderDetailInner() {
             <span className="font-bold text-[#1a1a1a]">Total Pembayaran</span>
             <span className="text-lg font-extrabold text-[#163f73]">{formatRupiah(order.total_pembayaran)}</span>
           </div>
+
+          {(order.status_pesanan === "PENDING" || order.status_pesanan === "DIKONFIRMASI" || order.status_pesanan === "DIPROSES") && (
+            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleCancelRequest}
+                disabled={canceling}
+                className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+              >
+                {canceling ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                {canceling ? "Mengajukan..." : "Ajukan Pembatalan"}
+              </button>
+            </div>
+          )}
+
+          {order.status_pesanan === "DIKIRIM" && (
+            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
+              <Link
+                href={`https://wa.me/6282243293881?text=${encodeURIComponent(`Halo Admin, saya ingin mengajukan keluhan untuk pesanan ${order.kode_pesanan}.`)}`}
+                target="_blank"
+                className="flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-5 py-2.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition-colors"
+              >
+                Ajukan Keluhan
+              </Link>
+              <button
+                type="button"
+                onClick={handleCompleteOrder}
+                disabled={completing}
+                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              >
+                {completing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                {completing ? "Memproses..." : "Pesanan Diterima"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

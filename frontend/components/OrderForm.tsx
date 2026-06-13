@@ -53,14 +53,24 @@ export default function OrderForm() {
 
   const [nama, setNama] = useState(user?.nama_lengkap ?? "");
   const [telepon, setTelepon] = useState(user?.no_whatsapp ?? "");
-  const [country, setCountry] = useState("Indonesia");
   const [alamat, setAlamat] = useState("");
   const [detailAlamat, setDetailAlamat] = useState("");
-  const [provinsi, setProvinsi] = useState("");
   const [catatan, setCatatan] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [detectingLocation, setDetectingLocation] = useState(false);
+
+  // Shipping States
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [provinceId, setProvinceId] = useState("");
+  const [provinceName, setProvinceName] = useState("");
+  const [cityId, setCityId] = useState("");
+  const [cityName, setCityName] = useState("");
+  const [selectedCourier, setSelectedCourier] = useState("jne");
+  const [shippingCosts, setShippingCosts] = useState<any[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [calculatingOngkir, setCalculatingOngkir] = useState(false);
 
   const previewOrderNumber = useMemo(() => {
     if (typeof window === "undefined") return "#0001";
@@ -73,18 +83,63 @@ export default function OrderForm() {
     if (user) {
       if (user.nama_lengkap) setNama(user.nama_lengkap);
       if (user.no_whatsapp) setTelepon(user.no_whatsapp);
-      if (user.alamat) {
-        setAlamat(user.alamat);
-        // Try to extract province from alamat (format: street, city, province, country)
-        const parts = user.alamat.split(",").map(p => p.trim());
-        if (parts.length >= 3) {
-          setProvinsi(parts[parts.length - 2]);
-        }
-      }
+      if (user.alamat) setAlamat(user.alamat);
       if (user.lat) setLat(user.lat);
       if (user.lng) setLng(user.lng);
     }
   }, [user]);
+
+  // Load Provinces
+  useEffect(() => {
+    fetch('/api/ongkir/location?type=province')
+      .then(r => r.json())
+      .then(data => {
+        if (data.rajaongkir?.results) setProvinces(data.rajaongkir.results);
+      }).catch(() => {});
+  }, []);
+
+  // Load Cities when Province changes
+  useEffect(() => {
+    if (provinceId) {
+      setCities([]);
+      setCityId("");
+      setShippingCosts([]);
+      setSelectedShipping(null);
+      fetch(`/api/ongkir/location?type=city&id=${provinceId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.rajaongkir?.results) setCities(data.rajaongkir.results);
+        }).catch(() => {});
+    }
+  }, [provinceId]);
+
+  // Calculate Shipping Cost
+  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (item.qty * 250), 0) || 250, [items]);
+
+  useEffect(() => {
+    async function calculateShipping() {
+      if (!cityId || !selectedCourier) return;
+      setCalculatingOngkir(true);
+      setShippingCosts([]);
+      setSelectedShipping(null);
+      try {
+        const res = await fetch('/api/ongkir/cost', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destination: cityId, weight: totalWeight, courier: selectedCourier })
+        });
+        const data = await res.json();
+        if (data.rajaongkir?.results?.[0]?.costs) {
+          setShippingCosts(data.rajaongkir.results[0].costs);
+        }
+      } catch (e) {
+        console.error("Gagal hitung ongkir:", e);
+      }
+      setCalculatingOngkir(false);
+    }
+
+    calculateShipping();
+  }, [cityId, selectedCourier, totalWeight]);
 
   // Detect current location
   function detectLocation() {
@@ -104,10 +159,6 @@ export default function OrderForm() {
             if (data && data.display_name) {
               const address = data.display_name;
               setAlamat(address);
-              const parts = address.split(",").map((p: string) => p.trim());
-              if (parts.length >= 3) {
-                setProvinsi(parts[parts.length - 2]);
-              }
             }
           })
           .catch(() => {})
@@ -124,7 +175,7 @@ export default function OrderForm() {
   // Save address to profile
   async function saveAddressToProfile() {
     if (!user || !token) return;
-    const fullAlamat = [alamat, detailAlamat, provinsi, country].filter(Boolean).join(", ");
+    const fullAlamat = [alamat, detailAlamat, cityName, provinceName, "Indonesia"].filter(Boolean).join(", ");
     try {
       await authFetch(apiUrl("/users/me"), {
         method: "PUT",
@@ -201,9 +252,12 @@ export default function OrderForm() {
     0
   );
 
+  const ongkirAmount = selectedShipping?.cost?.[0]?.value || 0;
+  const grandTotal = totalAfterDiscount + ongkirAmount;
+
   function buildMessage(orderNum: string): string {
     const sep = "--------------------------------";
-    const fullAlamat = [alamat, detailAlamat, provinsi, country]
+    const fullAlamat = [alamat, detailAlamat, cityName, provinceName, "Indonesia"]
       .filter(Boolean)
       .join(", ");
 
@@ -237,7 +291,11 @@ export default function OrderForm() {
     });
 
     lines.push(sep);
-    lines.push(`*TOTAL: ${formatRupiah(totalAfterDiscount)}*`);
+    lines.push(`Subtotal Produk: ${formatRupiah(totalAfterDiscount)}`);
+    if (selectedShipping) {
+      lines.push(`Ongkos Kirim (${selectedCourier.toUpperCase()} - ${selectedShipping.service}): ${formatRupiah(ongkirAmount)}`);
+    }
+    lines.push(`*TOTAL PEMBAYARAN: ${formatRupiah(grandTotal)}*`);
     lines.push("");
     lines.push("Mohon konfirmasi pesanan ini. Terima kasih!");
 
@@ -245,7 +303,7 @@ export default function OrderForm() {
   }
 
   const isValid =
-    nama.trim() && telepon.trim() && alamat.trim() && provinsi.trim();
+    nama.trim() && telepon.trim() && alamat.trim() && provinceId && cityId && selectedShipping;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -253,7 +311,7 @@ export default function OrderForm() {
 
     let orderNum = `#ORD-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`; 
     
-    const fullAlamat = [alamat, detailAlamat, provinsi, country]
+    const fullAlamat = [alamat, detailAlamat, cityName, provinceName, "Indonesia"]
       .filter(Boolean)
       .join(", ");
 
@@ -262,6 +320,8 @@ export default function OrderForm() {
       alamat_pengiriman: fullAlamat,
       no_telepon: telepon,
       catatan,
+      jenis_pengiriman: selectedShipping ? `${selectedCourier.toUpperCase()} - ${selectedShipping.service} (${formatRupiah(ongkirAmount)})` : null,
+      total_pembayaran: grandTotal,
       lat,
       lng,
       items: items.map((item) => ({
@@ -411,16 +471,87 @@ export default function OrderForm() {
               />
             </FormField>
 
-            <FormField label="Country/Region" required>
-              <input
-                type="text"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Indonesia"
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="Provinsi" required>
+                <select
+                  value={provinceId}
+                  onChange={(e) => {
+                    setProvinceId(e.target.value);
+                    const name = e.target.options[e.target.selectedIndex].text;
+                    setProvinceName(name);
+                  }}
+                  className={inputClass}
+                  required
+                >
+                  <option value="">Pilih Provinsi</option>
+                  {provinces.map(p => <option key={p.province_id} value={p.province_id}>{p.province}</option>)}
+                </select>
+              </FormField>
+
+              <FormField label="Kota/Kabupaten" required>
+                <select
+                  value={cityId}
+                  onChange={(e) => {
+                    setCityId(e.target.value);
+                    const name = e.target.options[e.target.selectedIndex].text;
+                    setCityName(name);
+                  }}
+                  disabled={!provinceId || cities.length === 0}
+                  className={inputClass}
+                  required
+                >
+                  <option value="">Pilih Kota/Kab</option>
+                  {cities.map(c => <option key={c.city_id} value={c.city_id}>{c.type} {c.city_name}</option>)}
+                </select>
+              </FormField>
+            </div>
+
+            <FormField label="Kurir Pengiriman" required>
+              <select
+                value={selectedCourier}
+                onChange={(e) => setSelectedCourier(e.target.value)}
                 className={inputClass}
                 required
-              />
+              >
+                <option value="jne">JNE</option>
+                <option value="pos">POS Indonesia</option>
+                <option value="tiki">TIKI</option>
+              </select>
             </FormField>
+
+            {/* Pilihan Layanan Ongkir */}
+            {(calculatingOngkir || shippingCosts.length > 0) && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                <h4 className="mb-3 text-[12px] font-bold text-[#163f73]">Pilih Layanan Pengiriman:</h4>
+                {calculatingOngkir ? (
+                  <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin text-[#163f73]" /> Menghitung tarif...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {shippingCosts.map((cost, idx) => (
+                      <label key={idx} className={`flex cursor-pointer items-start justify-between rounded-lg border p-3 transition-colors ${selectedShipping === cost ? "border-[#163f73] bg-white ring-1 ring-[#163f73]" : "border-gray-200 bg-white hover:border-blue-300"}`}>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="shippingService"
+                            checked={selectedShipping === cost}
+                            onChange={() => setSelectedShipping(cost)}
+                            className="mt-0.5 h-4 w-4 shrink-0 text-[#163f73] focus:ring-[#163f73]"
+                          />
+                          <div>
+                            <span className="block text-[13px] font-bold text-gray-800">{cost.service}</span>
+                            <span className="block text-[11px] text-gray-500">Estimasi: {cost.cost?.[0]?.etd || "-"} Hari</span>
+                          </div>
+                        </div>
+                        <span className="text-[13px] font-bold text-[#163f73]">{formatRupiah(cost.cost?.[0]?.value || 0)}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Map Picker untuk Alamat */}
             <div className="space-y-3 border-t border-gray-100 pt-4">
@@ -448,10 +579,6 @@ export default function OrderForm() {
                   setLng(newLng);
                   if (address) {
                     setAlamat(address);
-                    const parts = address.split(",").map(p => p.trim());
-                    if (parts.length >= 3) {
-                      setProvinsi(parts[parts.length - 2]);
-                    }
                   }
                 }}
               />
@@ -487,16 +614,7 @@ export default function OrderForm() {
               />
             </FormField>
 
-            <FormField label="Provinsi" required>
-              <input
-                type="text"
-                value={provinsi}
-                onChange={(e) => setProvinsi(e.target.value)}
-                placeholder="Masukkan provinsi"
-                className={inputClass}
-                required
-              />
-            </FormField>
+
 
             <FormField label="Nomor Telepon" required>
               <input

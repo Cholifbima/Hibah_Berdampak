@@ -38,6 +38,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   DIPROSES: { label: "Diproses", color: "text-indigo-600", bg: "bg-indigo-50 border-indigo-200", icon: Package },
   DIKIRIM: { label: "Dalam Pengiriman", color: "text-purple-600", bg: "bg-purple-50 border-purple-200", icon: Truck },
   SELESAI: { label: "Selesai", color: "text-green-600", bg: "bg-green-50 border-green-200", icon: CheckCircle },
+  MENUNGGU_PEMBATALAN: { label: "Menunggu Batal", color: "text-red-500", bg: "bg-red-50 border-red-200", icon: Clock },
   DIBATALKAN: { label: "Dibatalkan", color: "text-red-600", bg: "bg-red-50 border-red-200", icon: Clock },
 };
 
@@ -95,12 +96,30 @@ function ManualTrackingTab() {
   function handleTrack(e: React.FormEvent) {
     e.preventDefault();
     if (!resi.trim()) return;
+    
+    // Mock data untuk testing
+    if (resi.toUpperCase() === "TEST12345" || resi.toUpperCase() === "MOCKRESI") {
+      setResult(
+        `[MOCK DATA - TESTING]\n\n` +
+        `Status: DALAM PENGIRIMAN (Delivering)\n` +
+        `Kurir: ${courier.toUpperCase()}\n` +
+        `Resi: ${resi.toUpperCase()}\n\n` +
+        `Riwayat Perjalanan:\n` +
+        `• Hari ini, 08:30 - Kurir sedang mengirim paket ke alamat penerima.\n` +
+        `• Kemarin, 14:15 - Paket telah tiba di hub penyortiran kota tujuan.\n` +
+        `• 2 Hari lalu, 09:00 - Paket telah diserahkan ke pihak ekspedisi.\n` +
+        `• 2 Hari lalu, 07:30 - Pesanan sedang disiapkan oleh penjual.`
+      );
+      return;
+    }
+
     setResult(
       `Fitur tracking resi otomatis akan segera tersedia.\n\nSementara itu, silakan cek resi "${resi}" melalui website resmi kurir:\n\n` +
         `• JNE: https://www.jne.co.id/id/tracking/trace\n` +
         `• J&T: https://www.jet.co.id/track\n` +
         `• SiCepat: https://www.sicepat.com/checkAwb\n` +
-        `• AnterAja: https://anteraja.id/tracking`
+        `• AnterAja: https://anteraja.id/tracking\n\n` +
+        `*(Tips: Coba masukkan resi "TEST12345" untuk melihat contoh tampilan resi otomatis)*`
     );
   }
 
@@ -306,7 +325,7 @@ export default function PesananPage() {
           <>
             {/* Filter */}
             <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
-              {["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", "SELESAI"].map((s) => (
+              {["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", "SELESAI", "MENUNGGU_PEMBATALAN", "DIBATALKAN"].map((s) => (
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}

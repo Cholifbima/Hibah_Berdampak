@@ -35,6 +35,8 @@ interface Stats {
   total_stok: number;
   total_user: number;
   total_pesanan: number;
+  chartData: { name: string; pendapatan: number }[];
+  recentActivity: { id: number; pesan: string; waktu: string }[];
 }
 
 interface TrenItem {
@@ -46,15 +48,6 @@ interface TrenItem {
   total_terjual: number;
   total_pendapatan: number;
 }
-
-const CHART_DATA = [
-  { name: 'Jan', pendapatan: 850000 },
-  { name: 'Feb', pendapatan: 1200000 },
-  { name: 'Mar', pendapatan: 950000 },
-  { name: 'Apr', pendapatan: 1800000 },
-  { name: 'Mei', pendapatan: 1450000 },
-  { name: 'Jun', pendapatan: 2100000 },
-];
 
 // ─── Admin Navbar ─────────────────────────────────────────────────────────────
 function AdminHeader({ userName, onMenuToggle }: { userName?: string; onMenuToggle: () => void }) {
@@ -291,7 +284,7 @@ export default function AdminDashboard() {
                 <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
                   <div className="h-[200px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={CHART_DATA} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                      <AreaChart data={stats?.chartData || []} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#163f73" stopOpacity={0.3}/>
@@ -381,8 +374,26 @@ export default function AdminDashboard() {
                   <div className="bg-gray-50 border-b border-gray-100 px-4 py-2.5">
                     <span className="text-[12px] font-bold text-gray-700 uppercase tracking-wide">Log Aktivitas Sistem</span>
                   </div>
-                  <div className="p-6 text-center text-[12px] text-gray-400">
-                    Belum ada riwayat aktivitas terbaru.
+                  <div className="p-4">
+                    {stats?.recentActivity && stats.recentActivity.length > 0 ? (
+                      <div className="space-y-3">
+                        {stats.recentActivity.map((act) => (
+                          <div key={act.id} className="flex gap-3 text-sm">
+                            <div className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-[#163f73]"></div>
+                            <div>
+                              <p className="text-gray-800">{act.pesan}</p>
+                              <p className="text-[11px] text-gray-400">
+                                {new Date(act.waktu).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-[12px] text-gray-400 py-2">
+                        Belum ada riwayat aktivitas terbaru.
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
