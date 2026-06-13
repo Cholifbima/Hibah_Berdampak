@@ -257,41 +257,77 @@ export default function OrderForm() {
       .filter(Boolean)
       .join(", ");
 
+    const orderPayload = {
+      nama_penerima: nama,
+      alamat_pengiriman: fullAlamat,
+      no_telepon: telepon,
+      catatan,
+      lat,
+      lng,
+      items: items.map((item) => ({
+        id_product: item.id_product,
+        kuantitas: item.qty,
+        harga_satuan_terekam: getEffectivePrice(item),
+        subtotal: getEffectivePrice(item) * item.qty,
+      })),
+    };
+
+    let orderSaved = false;
+
     try {
+      // Ambil token terbaru dari localStorage (mungkin sudah di-refresh oleh authFetch sebelumnya)
+      const freshToken = localStorage.getItem("topassist_token") || token;
+      
       const res = await authFetch(apiUrl("/orders"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${freshToken}`,
         },
-        body: JSON.stringify({
-          kode_pesanan: orderNum, // KIRIM KEMBALI KODE UNIK agar backend lama tidak menolak (400)
-          nama_penerima: nama,
-          alamat_pengiriman: fullAlamat,
-          no_telepon: telepon,
-          catatan,
-          lat,
-          lng,
-          items: items.map((item) => ({
-            id_product: item.id_product,
-            kuantitas: item.qty,
-            harga_satuan_terekam: getEffectivePrice(item),
-            subtotal: getEffectivePrice(item) * item.qty,
-          })),
-        }),
+        body: JSON.stringify(orderPayload),
       });
 
       if (res.ok) {
         const data = await res.json();
         if (data.kode_pesanan) {
-          orderNum = data.kode_pesanan; // Pakai kode dari database
+          orderNum = data.kode_pesanan;
         }
+        orderSaved = true;
+        console.log("✅ Pesanan berhasil disimpan ke database:", data.id_order);
       } else {
-        console.error("Gagal menyimpan ke database, tapi lanjut ke WA");
+        const errBody = await res.text();
+        console.error(`❌ Order API error ${res.status}:`, errBody);
+        
+        // Jika masih 401 setelah authFetch (refresh gagal), coba sekali lagi dengan token terbaru
+        if (res.status === 401) {
+          const retryToken = localStorage.getItem("topassist_token");
+          if (retryToken && retryToken !== freshToken) {
+            console.log("🔄 Mencoba ulang dengan token yang sudah di-refresh...");
+            const retryRes = await fetch(apiUrl("/orders"), {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${retryToken}`,
+              },
+              body: JSON.stringify(orderPayload),
+            });
+            if (retryRes.ok) {
+              const retryData = await retryRes.json();
+              if (retryData.kode_pesanan) orderNum = retryData.kode_pesanan;
+              orderSaved = true;
+              console.log("✅ Retry berhasil! Pesanan disimpan:", retryData.id_order);
+            } else {
+              console.error("❌ Retry juga gagal:", retryRes.status);
+            }
+          }
+        }
       }
-    } catch {
-      /* WA tetap dikirim meski DB gagal/down */
-      console.error("Database error, fallback ke WA saja");
+    } catch (err) {
+      console.error("❌ Network/exception error saat submit order:", err);
+    }
+
+    if (!orderSaved) {
+      console.warn("⚠️ Pesanan TIDAK tersimpan di database. Hanya dikirim via WhatsApp.");
     }
 
     // Save address to profile for future orders

@@ -12,11 +12,8 @@ export default function HeroSection() {
         className="object-cover object-[65%_center] sm:object-center pointer-events-none"
       />
       
-      {/* Cinematic Overlay (opacity sangat tipis agar sangat terang tapi teks tetap aman) */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/5 to-transparent pointer-events-none" />
-      
-      {/* Layer gradient halus ke putih di bagian bawah agar menyatu mulus dengan StatsBar */}
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+      {/* Cinematic Overlay (Lebih gelap agar teks kontras) */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-black/10 pointer-events-none" />
 
       <div className="pointer-events-auto relative mx-auto w-full max-w-7xl px-5 sm:px-6">
         <div className="max-w-2xl text-center md:text-left">
@@ -26,7 +23,7 @@ export default function HeroSection() {
             </span>
             <h1 className="text-3xl font-extrabold leading-tight text-white drop-shadow-lg sm:text-4xl lg:text-5xl">
               Temukan Produk{" "}
-              <span className="font-black text-[#0066ff] drop-shadow-md">
+              <span className="font-black text-[#66a3ff] drop-shadow-md">
                 Top Production
               </span>{" "}
               yang Anda Inginkan!
@@ -48,7 +45,7 @@ export default function HeroSection() {
             </a>
             <a
               href="/toko"
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-white/90 drop-shadow-md transition-all duration-200 hover:text-white hover:gap-2.5 sm:text-base"
+              className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-6 py-3 text-sm font-bold text-white drop-shadow-md backdrop-blur-sm ring-1 ring-white/20 transition-all duration-200 hover:bg-black/50 hover:gap-2.5 sm:text-base"
             >
               Lihat Koleksi
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

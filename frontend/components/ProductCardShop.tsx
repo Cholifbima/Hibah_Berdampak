@@ -29,7 +29,7 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
   const grosirHarga = firstDiscount?.harga_grosir || product.harga_grosir;
 
   return (
-    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10">
+    <Link href={`/toko/detail?id=${product.id_product}`} className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10">
       {/* Gambar produk */}
       <div className="relative aspect-square overflow-hidden bg-white border-b border-gray-100">
         {hasImage ? (

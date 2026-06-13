@@ -31,7 +31,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       href={`/toko/detail?id=${product.id_product}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10"
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10"
     >
       {/* Badge Best Seller */}
       <div className="absolute top-2.5 left-2.5 z-10">

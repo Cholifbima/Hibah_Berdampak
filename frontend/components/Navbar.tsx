@@ -94,7 +94,7 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
   return (
     <>
     <nav className={`fixed top-0 left-0 right-0 z-[9999] pointer-events-auto transition-all duration-300 ${
-      scrolled ? "bg-white shadow-[0_2px_20px_rgba(0,0,0,0.06)]" : isTransparent ? "bg-gradient-to-b from-black/20 to-transparent" : "bg-white border-b border-gray-100"
+      scrolled ? "bg-white shadow-[0_2px_20px_rgba(0,0,0,0.06)]" : isTransparent ? "bg-gradient-to-b from-black/80 via-black/40 to-transparent" : "bg-white border-b border-gray-100"
     }`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between sm:h-20">

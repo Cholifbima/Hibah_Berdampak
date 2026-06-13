@@ -27,7 +27,7 @@ export default function NewProductsSection({ products }: NewProductsSectionProps
 
         <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:mt-12">
           {products.map((product, i) => (
-            <ScrollReveal key={product.id_product} delay={i * 80} direction="up">
+            <ScrollReveal key={product.id_product} delay={i * 80} direction="up" className="h-full">
               <ProductCard product={product} />
             </ScrollReveal>
           ))}
