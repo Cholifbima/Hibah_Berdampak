@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     // Origin ID 445 = Kota Surakarta
-    const response = await fetch("https://api.rajaongkir.com/starter/cost", {
+    const response = await fetch("https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",

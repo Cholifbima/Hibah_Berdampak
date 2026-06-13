@@ -10,10 +10,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "API Key belum disetting di .env.local" }, { status: 500 });
   }
 
-  // Komerce/RajaOngkir endpoints
-  let url = 'https://api.rajaongkir.com/starter/province';
+  // Komerce RajaOngkir endpoints
+  let url = 'https://rajaongkir.komerce.id/api/v1/destination/province';
   if (type === 'city') {
-    url = `https://api.rajaongkir.com/starter/city?province=${id}`;
+    url = `https://rajaongkir.komerce.id/api/v1/destination/city?province=${id}`;
   }
 
   try {
