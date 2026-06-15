@@ -72,8 +72,9 @@ function SidebarMenu({ open, onClose, onLogout }: { open: boolean; onClose: () =
 }
 
 // ─── User Card ───────────────────────────────────────────────────────────────
-function UserCard({ user }: { user: User }) {
+function UserCard({ user, token, onDelete }: { user: User; token: string; onDelete: (id: number) => void }) {
   const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isAdmin = user.role === "ADMIN";
   const initials = user.nama_lengkap
     .split(" ")
@@ -134,6 +135,30 @@ function UserCard({ user }: { user: User }) {
                 Bergabung: {new Date(user.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
               </div>
             )}
+          </div>
+          
+          <div className="pt-3 mt-3 border-t border-gray-100 flex justify-end">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={async () => {
+                if (!confirm(`Hapus pengguna ${user.nama_lengkap} beserta semua data pesanannya secara permanen?`)) return;
+                setDeleting(true);
+                try {
+                  const res = await fetch(apiUrl(`/admin/users/${user.id_user}`), {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (res.ok) onDelete(user.id_user);
+                  else alert("Gagal menghapus pengguna");
+                } catch { alert("Error jaringan"); }
+                setDeleting(false);
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[12px] font-bold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            >
+              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+              Hapus Pengguna
+            </button>
           </div>
         </div>
       )}
@@ -223,7 +248,14 @@ export default function AdminUsersPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map((u) => <UserCard key={u.id_user} user={u} />)}
+              {filtered.map((u) => (
+                <UserCard 
+                  key={u.id_user} 
+                  user={u} 
+                  token={token!}
+                  onDelete={(id) => setUsers(prev => prev.filter(user => user.id_user !== id))}
+                />
+              ))}
             </div>
           )}
         </div>

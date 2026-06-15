@@ -1093,25 +1093,33 @@ api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
 
 
     const updated = await prisma.order.update({
-
       where: { id_order: parseInt(req.params.id) },
-
       data,
-
       include: { details: { include: { product: true } } },
-
     });
-
     res.json(updated);
-
   } catch (error) {
-
     console.error('Update order error:', error);
-
     res.status(500).json({ error: 'Gagal mengupdate pesanan' });
-
   }
+});
 
+// Admin hapus pesanan
+api.delete('/orders/:id', authMiddleware, async (req, res) => {
+  try {
+    if (!req.userRole || req.userRole.toUpperCase() !== 'ADMIN') return res.status(403).json({ error: 'Akses ditolak' });
+    
+    // Hapus detail pesanan terlebih dahulu (karena ada foreign key constraint)
+    await prisma.orderDetail.deleteMany({ where: { id_order: parseInt(req.params.id) } });
+    
+    // Baru hapus pesanan utama
+    await prisma.order.delete({ where: { id_order: parseInt(req.params.id) } });
+    
+    res.json({ success: true, message: 'Pesanan berhasil dihapus' });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({ error: 'Gagal menghapus pesanan' });
+  }
 });
 
 
@@ -1133,45 +1141,78 @@ function adminMiddleware(req, res, next) {
 
 
 api.get('/admin/stats', adminMiddleware, async (req, res) => {
-
   try {
-
     const [totalPendapatan, totalProduk, totalStok, totalUser, totalPesanan] = await Promise.all([
-
-      prisma.order.aggregate({ _sum: { total_pembayaran: true } }),
-
+      prisma.order.aggregate({ 
+        _sum: { total_pembayaran: true },
+        where: { status_pesanan: 'SELESAI' }
+      }),
       prisma.product.count(),
-
       prisma.product.aggregate({ _sum: { stok: true } }),
-
       prisma.user.count({ where: { role: 'CUSTOMER' } }),
-
       prisma.order.count(),
-
     ]);
 
-    res.json({
+    // Hitung data grafik 6 bulan terakhir
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
 
-      total_pendapatan: totalPendapatan._sum.total_pembayaran || 0,
-
-      total_produk: totalProduk,
-
-      total_stok: totalStok._sum.stok || 0,
-
-      total_user: totalUser,
-
-      total_pesanan: totalPesanan,
-
+    const recentOrders = await prisma.order.findMany({
+      where: { 
+        tanggal_pesanan: { gte: sixMonthsAgo },
+        status_pesanan: 'SELESAI'
+      },
+      select: { tanggal_pesanan: true, total_pembayaran: true }
     });
 
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+    const chartDataMap = {};
+    
+    // Inisialisasi 6 bulan terakhir dengan 0
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const mName = monthNames[d.getMonth()];
+      chartDataMap[mName] = 0;
+    }
+
+    recentOrders.forEach(o => {
+      const mName = monthNames[new Date(o.tanggal_pesanan).getMonth()];
+      if (chartDataMap[mName] !== undefined) {
+        chartDataMap[mName] += o.total_pembayaran;
+      }
+    });
+
+    const chartData = Object.keys(chartDataMap).map(k => ({ name: k, pendapatan: chartDataMap[k] }));
+
+    // Ambil log aktivitas terbaru (5 pesanan terakhir)
+    const latestOrders = await prisma.order.findMany({
+      take: 5,
+      orderBy: { updated_at: 'desc' },
+      include: { user: { select: { nama_lengkap: true } } }
+    });
+
+    const recentActivity = latestOrders.map(o => ({
+      id: o.id_order,
+      pesan: `Pesanan ${o.kode_pesanan} diupdate menjadi ${o.status_pesanan}`,
+      waktu: o.updated_at
+    }));
+
+    res.json({
+      total_pendapatan: totalPendapatan._sum.total_pembayaran || 0,
+      total_produk: totalProduk,
+      total_stok: totalStok._sum.stok || 0,
+      total_user: totalUser,
+      total_pesanan: totalPesanan,
+      chartData,
+      recentActivity
+    });
   } catch (error) {
-
     console.error('Admin stats error:', error);
-
     res.status(500).json({ error: 'Gagal mengambil statistik' });
-
   }
-
 });
 
 
@@ -1316,6 +1357,37 @@ api.get('/admin/users', adminMiddleware, async (req, res) => {
 
   }
 
+});
+
+api.delete('/admin/users/:id', adminMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ error: 'ID tidak valid' });
+
+    // Cek apakah user mencoba menghapus dirinya sendiri
+    if (userId === req.userId) {
+      return res.status(400).json({ error: 'Tidak bisa menghapus akun sendiri' });
+    }
+
+    const userToDelete = await prisma.user.findUnique({ where: { id_user: userId } });
+    if (!userToDelete) return res.status(404).json({ error: 'User tidak ditemukan' });
+
+    // Hapus OrderDetail dan Order terkait
+    const userOrders = await prisma.order.findMany({ where: { id_user: userId }, select: { id_order: true } });
+    const orderIds = userOrders.map(o => o.id_order);
+    if (orderIds.length > 0) {
+      await prisma.orderDetail.deleteMany({ where: { id_order: { in: orderIds } } });
+      await prisma.order.deleteMany({ where: { id_order: { in: orderIds } } });
+    }
+
+    // Hapus CartItem (otomatis karena Cascade) dan User
+    await prisma.user.delete({ where: { id_user: userId } });
+
+    res.json({ success: true, message: 'User beserta datanya berhasil dihapus' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Gagal menghapus user' });
+  }
 });
 
 // ─── Profile ─────────────────────────────────────────────────────────────────

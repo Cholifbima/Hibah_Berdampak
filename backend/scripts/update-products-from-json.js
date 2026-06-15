@@ -19,12 +19,12 @@ try {
 
 const prisma = new PrismaClient();
 
-// Parse harga grosir dari string "Beli (>=10) Rp73.000"
+// Parse harga grosir dari string "Beli (>=10) Rp73.000" atau "Beli (10 - 100) Rp30.000"
 function parseGrosir(grosirString) {
   if (!grosirString) return { minQty: null, harga: null };
   
-  // Extract min quantity
-  const minMatch = grosirString.match(/>=\s*(\d+)/);
+  // Extract min quantity from the first bracket (e.g. ">=10" or "10 - 100")
+  const minMatch = grosirString.match(/\(\s*(?:>=)?\s*(\d+)/);
   const minQty = minMatch ? parseInt(minMatch[1]) : null;
   
   // Extract price - remove dots and non-numeric except decimal
