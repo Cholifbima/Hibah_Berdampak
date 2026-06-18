@@ -20,7 +20,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 interface MapPickerProps {
   lat: number | null;
   lng: number | null;
-  onChange: (lat: number, lng: number, address?: string) => void;
+  onChange: (lat: number, lng: number, address?: string, addressDetails?: any) => void;
 }
 
 function DraggableMarker({ lat, lng, onDragEnd }: { lat: number; lng: number; onDragEnd: (lat: number, lng: number) => void }) {
@@ -72,7 +72,7 @@ export default function MapPicker({ lat, lng, onChange }: MapPickerProps) {
         const item = data[0];
         const newLat = parseFloat(item.lat);
         const newLng = parseFloat(item.lon);
-        onChange(newLat, newLng, item.display_name);
+        onChange(newLat, newLng, item.display_name, item.address);
       } else {
         alert("Alamat tidak ditemukan. Coba kata kunci lain.");
       }
@@ -92,7 +92,7 @@ export default function MapPicker({ lat, lng, onChange }: MapPickerProps) {
       const data = await res.json();
       if (data && data.display_name) {
         setQuery(data.display_name.split(",").slice(0, 3).join(",").trim());
-        onChange(lat, lng, data.display_name);
+        onChange(lat, lng, data.display_name, data.address);
         return data.display_name;
       }
     } catch { /* ignore */ }

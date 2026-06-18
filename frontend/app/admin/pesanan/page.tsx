@@ -211,13 +211,23 @@ function OrderCard({ order, token, onUpdate, onDelete }: { order: Order; token: 
               {/* Form Input Resi jika mau kirim */}
               {nextStatuses.includes("DIKIRIM") && (
                 <div className="flex flex-col sm:flex-row gap-2 rounded-lg bg-gray-50 p-2 border border-gray-100">
-                  <input 
-                    type="text" 
-                    value={kurir} 
-                    onChange={(e) => setKurir(e.target.value)} 
-                    placeholder="Kurir (ex: JNE)" 
-                    className="w-full sm:w-24 rounded border border-gray-200 px-2 py-1.5 text-[11px] focus:outline-none focus:border-[#163f73]" 
-                  />
+                  <select
+                    value={kurir}
+                    onChange={(e) => setKurir(e.target.value)}
+                    className="w-full sm:w-32 rounded border border-gray-200 px-2 py-1.5 text-[11px] focus:outline-none focus:border-[#163f73]"
+                  >
+                    <option value="jne">JNE</option>
+                    <option value="jnt">J&T Express</option>
+                    <option value="sicepat">SiCepat</option>
+                    <option value="pos">POS Indonesia</option>
+                    <option value="tiki">TIKI</option>
+                    <option value="anteraja">AnterAja</option>
+                    <option value="wahana">Wahana</option>
+                    <option value="ninja">Ninja Xpress</option>
+                    <option value="lion">Lion Parcel</option>
+                    <option value="idexpress">ID Express</option>
+                    <option value="spx">Shopee Express</option>
+                  </select>
                   <input 
                     type="text" 
                     value={resi} 

@@ -62,6 +62,85 @@ export default function OrderForm() {
   const [lng, setLng] = useState<number | null>(null);
   const [detectingLocation, setDetectingLocation] = useState(false);
 
+  // Emsifa API States
+  const [provinces, setProvinces] = useState<{id: string; name: string}[]>([]);
+  const [regencies, setRegencies] = useState<{id: string; name: string}[]>([]);
+  const [districts, setDistricts] = useState<{id: string; name: string}[]>([]);
+  const [villages, setVillages] = useState<{id: string; name: string}[]>([]);
+
+  const [selectedProv, setSelectedProv] = useState<{id: string; name: string}>({id: "", name: ""});
+  const [selectedReg, setSelectedReg] = useState<{id: string; name: string}>({id: "", name: ""});
+  const [selectedDist, setSelectedDist] = useState<{id: string; name: string}>({id: "", name: ""});
+  const [selectedVill, setSelectedVill] = useState<{id: string; name: string}>({id: "", name: ""});
+
+  useEffect(() => {
+    fetch("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProv.id) {
+      setRegencies([]); setSelectedReg({id: "", name: ""});
+      return;
+    }
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProv.id}.json`)
+      .then(res => res.json())
+      .then(data => setRegencies(data))
+      .catch(console.error);
+  }, [selectedProv.id]);
+
+  useEffect(() => {
+    if (!selectedReg.id) {
+      setDistricts([]); setSelectedDist({id: "", name: ""});
+      return;
+    }
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedReg.id}.json`)
+      .then(res => res.json())
+      .then(data => setDistricts(data))
+      .catch(console.error);
+  }, [selectedReg.id]);
+
+  useEffect(() => {
+    if (!selectedDist.id) {
+      setVillages([]); setSelectedVill({id: "", name: ""});
+      return;
+    }
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${selectedDist.id}.json`)
+      .then(res => res.json())
+      .then(data => setVillages(data))
+      .catch(console.error);
+
+    // Sync map: when district changes, move map there if village not selected
+    if (selectedDist.name && selectedReg.name && selectedProv.name) {
+      const q = `${selectedDist.name}, ${selectedReg.name}, ${selectedProv.name}`;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0 && !selectedVill.id) {
+            setLat(parseFloat(data[0].lat));
+            setLng(parseFloat(data[0].lon));
+          }
+        }).catch(() => {});
+    }
+  }, [selectedDist.id]);
+
+  useEffect(() => {
+    // Sync map: when village changes, move map there
+    if (selectedVill.id && selectedVill.name && selectedDist.name && selectedReg.name && selectedProv.name) {
+      const q = `${selectedVill.name}, ${selectedDist.name}, ${selectedReg.name}, ${selectedProv.name}`;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            setLat(parseFloat(data[0].lat));
+            setLng(parseFloat(data[0].lon));
+          }
+        }).catch(() => {});
+    }
+  }, [selectedVill.id]);
+
   const previewOrderNumber = useMemo(() => {
     if (typeof window === "undefined") return "#0001";
     const current = parseInt(localStorage.getItem(ORDER_COUNTER_KEY) || "0", 10);
@@ -85,6 +164,58 @@ export default function OrderForm() {
     }
   }, [user]);
 
+  async function syncAddressWithDropdowns(addressDetails: any) {
+    if (!addressDetails) return;
+    
+    // Find matching province
+    let matchedProv = null;
+    const stateName = addressDetails.state || addressDetails.province;
+    if (stateName) {
+      matchedProv = provinces.find(p => p.name.toLowerCase() === stateName.toLowerCase() || stateName.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(stateName.toLowerCase()));
+      if (matchedProv) setSelectedProv({id: matchedProv.id, name: matchedProv.name});
+    }
+
+    if (matchedProv) {
+      try {
+        const regRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${matchedProv.id}.json`);
+        const regData = await regRes.json();
+        setRegencies(regData);
+        
+        const cityName = addressDetails.city || addressDetails.county || addressDetails.regency || addressDetails.municipality;
+        let matchedReg = null;
+        if (cityName) {
+          matchedReg = regData.find((r: any) => cityName.toLowerCase().includes(r.name.toLowerCase()) || r.name.toLowerCase().includes(cityName.toLowerCase()));
+          if (matchedReg) setSelectedReg({id: matchedReg.id, name: matchedReg.name});
+        }
+
+        if (matchedReg) {
+          const distRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${matchedReg.id}.json`);
+          const distData = await distRes.json();
+          setDistricts(distData);
+
+          const distName = addressDetails.suburb || addressDetails.town || addressDetails.district;
+          let matchedDist = null;
+          if (distName) {
+            matchedDist = distData.find((d: any) => distName.toLowerCase().includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(distName.toLowerCase()));
+            if (matchedDist) setSelectedDist({id: matchedDist.id, name: matchedDist.name});
+          }
+
+          if (matchedDist) {
+            const villRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${matchedDist.id}.json`);
+            const villData = await villRes.json();
+            setVillages(villData);
+
+            const villName = addressDetails.village || addressDetails.neighbourhood || addressDetails.quarter;
+            if (villName) {
+              const matchedVill = villData.find((v: any) => villName.toLowerCase().includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(villName.toLowerCase()));
+              if (matchedVill) setSelectedVill({id: matchedVill.id, name: matchedVill.name});
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
   // Detect current location
   function detectLocation() {
     if (!navigator.geolocation) {
@@ -103,10 +234,7 @@ export default function OrderForm() {
             if (data && data.display_name) {
               const address = data.display_name;
               setAlamat(address);
-              const parts = address.split(",").map((p: string) => p.trim());
-              if (parts.length >= 3) {
-                setProvinsi(parts[parts.length - 2]);
-              }
+              syncAddressWithDropdowns(data.address);
             }
           })
           .catch(() => {})
@@ -123,7 +251,7 @@ export default function OrderForm() {
   // Save address to profile
   async function saveAddressToProfile() {
     if (!user || !token) return;
-    const fullAlamat = [alamat, detailAlamat, provinsi, country].filter(Boolean).join(", ");
+    const fullAlamat = [alamat, detailAlamat, selectedVill.name, selectedDist.name, selectedReg.name, provinsi || selectedProv.name, country].filter(Boolean).join(", ");
     try {
       await authFetch(apiUrl("/users/me"), {
         method: "PUT",
@@ -202,7 +330,7 @@ export default function OrderForm() {
 
   function buildMessage(orderNum: string): string {
     const sep = "--------------------------------";
-    const fullAlamat = [alamat, detailAlamat, provinsi, country]
+    const fullAlamat = [alamat, detailAlamat, selectedVill.name, selectedDist.name, selectedReg.name, provinsi || selectedProv.name, country]
       .filter(Boolean)
       .join(", ");
 
@@ -243,14 +371,17 @@ export default function OrderForm() {
     return lines.join("\n");
   }
 
+  const isPhoneValid = /^\d{10,15}$/.test(telepon.trim());
   const isValid =
-    nama.trim() && telepon.trim() && alamat.trim() && provinsi.trim();
+    nama.trim() && isPhoneValid && alamat.trim() && (provinsi.trim() || selectedProv.name.trim());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isValid || !user || !token) return;
 
-    let orderNum = `#ORD-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`; 
+    const todayStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+    const fallbackSeq = String(Math.floor(Math.random() * 1000)).padStart(4, "0");
+    let orderNum = `ORD-${todayStr}-${fallbackSeq}`; 
     
     const fullAlamat = [alamat, detailAlamat, provinsi, country]
       .filter(Boolean)
@@ -291,7 +422,7 @@ export default function OrderForm() {
         if (data.kode_pesanan) {
           orderNum = data.kode_pesanan;
         }
-        orderSaved = true;
+        orderSaved = data; // Simpan seluruh objek pesanan
         console.log("✅ Pesanan berhasil disimpan ke database:", data.id_order);
       } else {
         const errBody = await res.text();
@@ -313,7 +444,7 @@ export default function OrderForm() {
             if (retryRes.ok) {
               const retryData = await retryRes.json();
               if (retryData.kode_pesanan) orderNum = retryData.kode_pesanan;
-              orderSaved = true;
+              orderSaved = retryData; // Simpan seluruh objek pesanan
               console.log("✅ Retry berhasil! Pesanan disimpan:", retryData.id_order);
             } else {
               console.error("❌ Retry juga gagal:", retryRes.status);
@@ -325,17 +456,20 @@ export default function OrderForm() {
       console.error("❌ Network/exception error saat submit order:", err);
     }
 
-    if (!orderSaved) {
-      console.warn("⚠️ Pesanan TIDAK tersimpan di database. Hanya dikirim via WhatsApp.");
-    }
-
     // Save address to profile for future orders
     await saveAddressToProfile();
 
-    const msg = encodeURIComponent(buildMessage(orderNum));
-    window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
-    clearCart();
-    router.push("/");
+    if (!orderSaved) {
+      console.warn("⚠️ Pesanan TIDAK tersimpan di database. Hanya dikirim via WhatsApp.");
+      const msg = encodeURIComponent(buildMessage(orderNum));
+      window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, "_blank");
+      clearCart();
+      router.push("/");
+    } else {
+      clearCart();
+      // Redirect ke detail pesanan
+      router.push(`/pesanan/detail?id=${orderSaved.id_order}`);
+    }
   }
 
   return (
@@ -423,14 +557,73 @@ export default function OrderForm() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Provinsi" required>
-                <input
-                  type="text"
-                  value={provinsi}
-                  onChange={(e) => setProvinsi(e.target.value)}
-                  placeholder="Provinsi tempat tinggal anda"
+                <select
+                  value={selectedProv.id || provinsi}
+                  onChange={(e) => {
+                    const sel = provinces.find(p => p.id === e.target.value);
+                    if (sel) {
+                      setSelectedProv({id: sel.id, name: sel.name});
+                      setProvinsi(""); // clear manual provinsi if dropdown used
+                    } else {
+                      setSelectedProv({id: "", name: ""});
+                      setProvinsi(e.target.value); // fallback to manual edit
+                    }
+                  }}
                   className={inputClass}
                   required
-                />
+                >
+                  <option value="">Pilih Provinsi</option>
+                  {provinsi && !provinces.find(p => p.id === provinsi) && <option value={provinsi}>{provinsi} (Dari Profil)</option>}
+                  {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </FormField>
+
+              <FormField label="Kota/Kabupaten">
+                <select
+                  value={selectedReg.id}
+                  onChange={(e) => {
+                    const sel = regencies.find(r => r.id === e.target.value);
+                    if (sel) setSelectedReg({id: sel.id, name: sel.name});
+                    else setSelectedReg({id: "", name: ""});
+                  }}
+                  className={inputClass}
+                  disabled={!selectedProv.id}
+                >
+                  <option value="">Pilih Kota/Kabupaten</option>
+                  {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </FormField>
+
+              <FormField label="Kecamatan">
+                <select
+                  value={selectedDist.id}
+                  onChange={(e) => {
+                    const sel = districts.find(d => d.id === e.target.value);
+                    if (sel) setSelectedDist({id: sel.id, name: sel.name});
+                    else setSelectedDist({id: "", name: ""});
+                  }}
+                  className={inputClass}
+                  disabled={!selectedReg.id}
+                >
+                  <option value="">Pilih Kecamatan</option>
+                  {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </FormField>
+
+              <FormField label="Kelurahan/Desa">
+                <select
+                  value={selectedVill.id}
+                  onChange={(e) => {
+                    const sel = villages.find(v => v.id === e.target.value);
+                    if (sel) setSelectedVill({id: sel.id, name: sel.name});
+                    else setSelectedVill({id: "", name: ""});
+                  }}
+                  className={inputClass}
+                  disabled={!selectedDist.id}
+                >
+                  <option value="">Pilih Kelurahan/Desa</option>
+                  {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                </select>
               </FormField>
             </div>
 
@@ -455,23 +648,17 @@ export default function OrderForm() {
               <MapPicker
                 lat={lat}
                 lng={lng}
-                onChange={(newLat, newLng, address) => {
+                onChange={(newLat, newLng, address, addressDetails) => {
                   setLat(newLat);
                   setLng(newLng);
                   if (address) {
                     setAlamat(address);
                   }
+                  if (addressDetails) {
+                    syncAddressWithDropdowns(addressDetails);
+                  }
                 }}
               />
-              
-              {(lat && lng) && (
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-700 border border-emerald-200">
-                    <MapPin className="h-2.5 w-2.5" />
-                    {lat.toFixed(6)}, {lng.toFixed(6)}
-                  </span>
-                </div>
-              )}
             </div>
 
             <FormField label="Alamat Lengkap" required>
@@ -501,11 +688,17 @@ export default function OrderForm() {
               <input
                 type="tel"
                 value={telepon}
-                onChange={(e) => setTelepon(e.target.value)}
-                placeholder="08xxxxxxxxxx"
+                onChange={(e) => setTelepon(e.target.value.replace(/\D/g, ""))}
+                pattern="[0-9]{10,15}"
+                maxLength={15}
+                title="Nomor telepon harus terdiri dari 10 hingga 15 angka"
+                placeholder="Contoh: 08123456789"
                 className={inputClass}
                 required
               />
+              {telepon && telepon.length < 10 && (
+                <p className="mt-1 text-[10px] text-[#a01720]">Nomor telepon minimal 10 angka.</p>
+              )}
             </FormField>
           </div>
 

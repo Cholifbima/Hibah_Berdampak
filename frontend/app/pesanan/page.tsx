@@ -29,6 +29,7 @@ interface Order {
   jenis_pengiriman: string | null;
   nomor_resi: string | null;
   tanggal_pesanan: string;
+  bukti_pembayaran_url?: string | null;
   details: OrderDetail[];
 }
 

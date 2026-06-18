@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, ShoppingBag, LogOut, UserCircle, Package, Search } from "lucide-react";
+import { Menu, X, ShoppingCart, LogOut, UserCircle, Package, Search } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { fetchProducts, type Product } from "@/lib/api";
@@ -192,9 +192,9 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href="/keranjang" className={`relative p-2 rounded-full transition-all ${iconBaseClass}`}>
-              <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
               {totalItems > 0 && (
-                <span className="absolute 1 top-0 right-0 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                <span className="absolute top-0 right-0 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-[1.5px] ring-white">
                   {totalItems > 99 ? "99" : totalItems}
                 </span>
               )}
@@ -207,8 +207,8 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
                     Admin
                   </Link>
                 )}
-                <Link href="/pesanan" className={`rounded-full p-2 transition-all ${iconBaseClass}`} title="Pesanan Saya">
-                  <Package className="h-5 w-5" />
+                <Link href="/pesanan" className={`rounded-full p-2 transition-all ${iconBaseClass} flex items-center justify-center`} title="Pesanan Saya">
+                  <Image src="/assets/icons/IkonHibah/pesanan.png" alt="Pesanan" width={22} height={22} className={`object-contain transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} />
                 </Link>
                 <Link href="/profil" className={`flex items-center gap-2 rounded-full p-1 pr-3 transition-all border ${isTransparent ? 'hover:bg-white/10 border-transparent' : 'hover:bg-gray-50 border-transparent hover:border-gray-100'}`} title="Edit Profil">
                   {user.avatar_url ? (
@@ -369,7 +369,7 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
                   </Link>
                 )}
                 <Link href="/pesanan" onClick={() => setOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 py-2.5 text-sm font-bold text-[#0066ff] transition-colors hover:bg-blue-100">
-                  <Package className="h-4 w-4" /> Pesanan Saya
+                  <Image src="/assets/icons/IkonHibah/pesanan.png" alt="Pesanan" width={18} height={18} className="object-contain" /> Pesanan Saya
                 </Link>
                 <button
                   onClick={() => { logout(); setOpen(false); }}

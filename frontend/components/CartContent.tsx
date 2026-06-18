@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { useCart, getEffectivePrice } from "@/lib/cart-context";
 import { formatRupiah } from "@/lib/api";
 
@@ -13,7 +13,7 @@ export default function CartContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-white/60 shadow-inner">
-          <ShoppingBag className="h-10 w-10 text-[#163f73]/40" />
+          <ShoppingCart className="h-10 w-10 text-[#163f73]/40" />
         </div>
         <h2 className="text-xl font-bold text-[#163f73]">Keranjang Kosong</h2>
         <p className="mt-2 text-sm text-gray-500">

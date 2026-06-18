@@ -31,7 +31,6 @@ export default function Footer() {
             <div className="mt-2 flex items-start gap-3">
               <MapPin className="mt-1 h-5 w-5 shrink-0 text-[#0066ff]" />
               <p className="text-sm leading-relaxed text-gray-500 max-w-sm">
-                SAMPING (selatan) KEBUGARAN SOLO &amp; SPA, PAGER MERAH ada POHON MANGGA,
                 Jl. Mojo No.18A, Karangasem, Kec. Laweyan, Kota Surakarta, Jawa Tengah 57145
               </p>
             </div>
@@ -49,11 +48,6 @@ export default function Footer() {
                   <p className="text-sm font-semibold text-gray-800">Jam Operasional:</p>
                   <p className="text-sm text-gray-500">Senin - Sabtu (10.00 - 17.00 WIB)</p>
                 </div>
-              </div>
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                <p className="text-xs font-semibold leading-relaxed text-amber-700">
-                  Hari Minggu &amp; Tanggal Merah tetap ada pengiriman.
-                </p>
               </div>
             </div>
           </div>
@@ -109,7 +103,7 @@ export default function Footer() {
 
             <div className="mt-2">
               <h4 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">Sosial Media</h4>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <a href="https://www.facebook.com/profile.php?id=100067483230790" target="_blank" rel="noopener noreferrer" className="group flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 transition-all duration-300 hover:-translate-y-1 hover:bg-[#1877f2]/10 hover:shadow-md">
                   <svg viewBox="0 0 24 24" className="h-5 w-5 fill-[#1877f2] transition-transform duration-300 group-hover:scale-110">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -120,6 +114,12 @@ export default function Footer() {
                 </a>
                 <a href="https://s.lazada.co.id/s.ZkgOfO" target="_blank" rel="noopener noreferrer" className="group flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-2 transition-all duration-300 hover:-translate-y-1 hover:bg-[#0f146d]/10 hover:shadow-md">
                   <Image src="/assets/icons/IkonHibah/lazada.png" alt="Lazada" width={24} height={24} className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-110" />
+                </a>
+                <a href="https://www.tokopedia.com/topproduction-1" target="_blank" rel="noopener noreferrer" className="group flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-2 transition-all duration-300 hover:-translate-y-1 hover:bg-[#42b549]/10 hover:shadow-md">
+                  <Image src="/assets/icons/IkonHibah/tokopedia.png" alt="Tokopedia" width={24} height={24} className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-110" />
+                </a>
+                <a href="https://www.tiktok.com/@topproduction3?_r=1&_t=ZS-95aWmGWTqD7" target="_blank" rel="noopener noreferrer" className="group flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-2 transition-all duration-300 hover:-translate-y-1 hover:bg-[#000000]/10 hover:shadow-md">
+                  <Image src="/assets/icons/IkonHibah/tiktokshop.png" alt="TikTok Shop" width={24} height={24} className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-110" />
                 </a>
               </div>
             </div>

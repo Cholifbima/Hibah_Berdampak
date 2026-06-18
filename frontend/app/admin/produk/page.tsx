@@ -28,6 +28,7 @@ interface Product {
   link_shopee: string | null;
   link_tokopedia: string | null;
   link_lazada: string | null;
+  link_tiktok: string | null;
 }
 
 // ─── Shared Admin UI ────────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ function ProductModal({
     link_shopee: product?.link_shopee ?? "",
     link_tokopedia: product?.link_tokopedia ?? "",
     link_lazada: product?.link_lazada ?? "",
+    link_tiktok: product?.link_tiktok ?? "",
   });
   // multi-image state
   const parseInitialUrls = (raw: string | null | undefined): string[] => {
@@ -180,6 +182,7 @@ function ProductModal({
         link_shopee: form.link_shopee.trim() || null,
         link_tokopedia: form.link_tokopedia.trim() || null,
         link_lazada: form.link_lazada.trim() || null,
+        link_tiktok: form.link_tiktok.trim() || null,
       };
       const url = isEdit ? apiUrl(`/products/${product!.id_product}`) : apiUrl("/products");
       const method = isEdit ? "PUT" : "POST";
@@ -370,10 +373,40 @@ function ProductModal({
             <label className="mb-1 block text-[12px] font-semibold text-gray-600">Link Shopee</label>
             <input
               type="url"
-              placeholder="https://id.shp.ee/..."
+              placeholder="https://shopee.co.id/..."
               value={form.link_shopee}
               onChange={(e) => setForm((p) => ({ ...p, link_shopee: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#EE4D2D] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#EE4D2D]/20"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[12px] font-semibold text-gray-600">Link Tokopedia</label>
+            <input
+              type="url"
+              placeholder="https://tokopedia.com/..."
+              value={form.link_tokopedia}
+              onChange={(e) => setForm((p) => ({ ...p, link_tokopedia: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#42b549] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#42b549]/20"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[12px] font-semibold text-gray-600">Link Lazada</label>
+            <input
+              type="url"
+              placeholder="https://lazada.co.id/..."
+              value={form.link_lazada}
+              onChange={(e) => setForm((p) => ({ ...p, link_lazada: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#0f146d] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0f146d]/20"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[12px] font-semibold text-gray-600">Link TikTok Shop</label>
+            <input
+              type="url"
+              placeholder="https://tiktok.com/..."
+              value={form.link_tiktok}
+              onChange={(e) => setForm((p) => ({ ...p, link_tiktok: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#000000] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
             />
           </div>
           <div>

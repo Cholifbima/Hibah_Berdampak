@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Star } from "lucide-react";
@@ -109,18 +111,44 @@ export default function ProductCard({ product }: ProductCardProps) {
             </p>
           )}
 
-          {/* Wrapper Bottom (Rating & Button) */}
+          {/* Wrapper Bottom (Rating, Marketplace & Button) */}
           <div className="mt-3 flex flex-col gap-2.5">
             {/* Rating & Stok */}
-            <div className="flex items-center gap-1.5">
-              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-[10px] font-bold text-gray-700 sm:text-xs">
-                {(product.rating ?? 5).toFixed(1)}
-              </span>
-              <span className="text-gray-300">·</span>
-              <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
-                {product.stok > 0 ? `${product.stok} stok` : "Habis"}
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                <span className="text-[10px] font-bold text-gray-700 sm:text-xs">
+                  {(product.rating ?? 5).toFixed(1)}
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="text-[10px] font-medium text-gray-500 sm:text-xs">
+                  {product.stok > 0 ? `${product.stok} stok` : "Habis"}
+                </span>
+              </div>
+              
+              {/* Marketplace Logos */}
+              <div className="flex items-center gap-1.5">
+                {product.link_shopee && (
+                  <button type="button" onClick={(e) => { e.preventDefault(); window.open(product.link_shopee!, "_blank"); }} className="h-5 w-5 rounded-md overflow-hidden hover:scale-110 transition-transform">
+                    <Image src="/assets/icons/IkonHibah/shoope.png" alt="Shopee" width={20} height={20} className="object-contain" />
+                  </button>
+                )}
+                {product.link_tokopedia && (
+                  <button type="button" onClick={(e) => { e.preventDefault(); window.open(product.link_tokopedia!, "_blank"); }} className="h-5 w-5 rounded-md overflow-hidden hover:scale-110 transition-transform">
+                    <Image src="/assets/icons/IkonHibah/tokopedia.png" alt="Tokopedia" width={20} height={20} className="object-contain" />
+                  </button>
+                )}
+                {product.link_lazada && (
+                  <button type="button" onClick={(e) => { e.preventDefault(); window.open(product.link_lazada!, "_blank"); }} className="h-5 w-5 rounded-md overflow-hidden hover:scale-110 transition-transform">
+                    <Image src="/assets/icons/IkonHibah/lazada.png" alt="Lazada" width={20} height={20} className="object-contain" />
+                  </button>
+                )}
+                {product.link_tiktok && (
+                  <button type="button" onClick={(e) => { e.preventDefault(); window.open(product.link_tiktok!, "_blank"); }} className="h-5 w-5 rounded-md overflow-hidden hover:scale-110 transition-transform">
+                    <Image src="/assets/icons/IkonHibah/tiktokshop.png" alt="TikTok Shop" width={20} height={20} className="object-contain" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* CTA Button */}

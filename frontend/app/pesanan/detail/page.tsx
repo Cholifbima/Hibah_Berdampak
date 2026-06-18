@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatRupiah, apiUrl } from "@/lib/api";
 import {
   ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, Phone,
-  User, FileText, Loader2, Edit3, Save, X,
+  User, FileText, Loader2, Edit3, Save, X, MessageCircle, Upload,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,6 +35,7 @@ interface Order {
   nomor_resi: string | null;
   tanggal_pesanan: string;
   updated_at: string;
+  bukti_pembayaran_url: string | null;
   details: OrderDetail[];
 }
 
@@ -66,9 +67,9 @@ function StatusTimeline({ status }: { status: string }) {
         const info = STATUS_CONFIG[step];
         const Icon = info.icon;
         return (
-          <div key={step} className="flex flex-1 flex-col items-center">
+          <div key={step} className="relative flex flex-1 flex-col items-center">
             {i > 0 && (
-              <div className={`absolute h-0.5 w-full ${done ? "bg-[#163f73]" : "bg-gray-200"}`} />
+              <div className={`absolute right-1/2 top-5 h-0.5 w-full z-0 ${done ? "bg-[#163f73]" : "bg-gray-200"}`} />
             )}
             <div
               className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
@@ -96,11 +97,6 @@ function OrderDetailInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [editingResi, setEditingResi] = useState(false);
-  const [resiInput, setResiInput] = useState("");
-  const [courierInput, setCourierInput] = useState("");
-  const [saving, setSaving] = useState(false);
-
   const fetchOrder = useCallback(async () => {
     if (!token || !orderId) return;
     setLoading(true);
@@ -114,8 +110,6 @@ function OrderDetailInner() {
       }
       const data = await res.json();
       setOrder(data);
-      setResiInput(data.nomor_resi || "");
-      setCourierInput(data.jenis_pengiriman || "");
     } catch {
       setError("Gagal memuat pesanan");
     } finally {
@@ -127,25 +121,65 @@ function OrderDetailInner() {
     if (!authLoading) fetchOrder();
   }, [authLoading, fetchOrder]);
 
-  async function handleSaveResi() {
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState("");
+
+  async function handleTrack() {
     if (!token || !order) return;
-    setSaving(true);
+    setTrackingLoading(true);
+    setTrackingError("");
     try {
-      const res = await fetch(apiUrl(`/orders/${order.id_order}/status`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ nomor_resi: resiInput, jenis_pengiriman: courierInput || null }),
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/track`), {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setOrder(updated);
-        setEditingResi(false);
-      }
-    } catch { /* ignore */ }
-    setSaving(false);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal melacak resi");
+      setTrackingData(data.data);
+    } catch (err: any) {
+      setTrackingError(err.message);
+    }
+    setTrackingLoading(false);
   }
 
   const [canceling, setCanceling] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleUploadBukti(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !token || !order) return;
+    
+    // Validasi ukuran max 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran file maksimal 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("bukti", file);
+
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/upload-bukti`), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }, // tanpa Content-Type agar browser otomatis set multipart boundary
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setOrder({ ...order, bukti_pembayaran_url: data.url, status_pesanan: 'MENUNGGU_KONFIRMASI' });
+        alert("Bukti pembayaran berhasil diupload!");
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal mengupload bukti pembayaran");
+      }
+    } catch {
+      alert("Terjadi kesalahan jaringan.");
+    }
+    setUploading(false);
+  }
+
   async function handleCancelRequest() {
     if (!token || !order) return;
     if (!confirm("Apakah Anda yakin ingin mengajukan pembatalan pesanan ini?")) return;
@@ -253,59 +287,48 @@ function OrderDetailInner() {
           <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-700">Nomor Resi</span>
-              {!editingResi && (
-                <button type="button" onClick={() => setEditingResi(true)} className="flex items-center gap-1 text-xs font-semibold text-[#163f73] hover:underline">
-                  <Edit3 className="h-3.5 w-3.5" /> {order.nomor_resi ? "Ubah" : "Tambahkan Resi"}
-                </button>
-              )}
             </div>
 
-            {editingResi ? (
-              <div className="mt-3 space-y-3">
-                <select
-                  value={courierInput}
-                  onChange={(e) => setCourierInput(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[#163f73] focus:ring-1 focus:ring-[#163f73]/20 focus:outline-none"
-                >
-                  <option value="">Pilih Kurir</option>
-                  <option value="JNE">JNE</option>
-                  <option value="J&T Express">J&T Express</option>
-                  <option value="SiCepat">SiCepat</option>
-                  <option value="AnterAja">AnterAja</option>
-                  <option value="POS Indonesia">POS Indonesia</option>
-                  <option value="TIKI">TIKI</option>
-                </select>
-                <input
-                  type="text"
-                  value={resiInput}
-                  onChange={(e) => setResiInput(e.target.value)}
-                  placeholder="Masukkan nomor resi"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#163f73] focus:ring-1 focus:ring-[#163f73]/20 focus:outline-none"
-                />
-                <div className="flex gap-2">
+            {order.nomor_resi ? (
+              <div className="mt-3">
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200">
+                  <div>
+                    {order.jenis_pengiriman && (
+                      <p className="text-xs font-bold uppercase text-[#163f73] mb-1">{order.jenis_pengiriman}</p>
+                    )}
+                    <p className="text-sm font-mono font-semibold text-gray-800">{order.nomor_resi}</p>
+                  </div>
                   <button
-                    type="button"
-                    onClick={handleSaveResi}
-                    disabled={saving}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#163f73] px-4 py-2 text-xs font-bold text-white hover:bg-[#0f2d55] transition-colors disabled:opacity-50"
+                    onClick={handleTrack}
+                    disabled={trackingLoading}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#163f73] px-4 py-2 text-xs font-bold text-white hover:bg-[#0f2d55] disabled:opacity-50 transition-colors"
                   >
-                    <Save className="h-3.5 w-3.5" /> {saving ? "Menyimpan..." : "Simpan"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setEditingResi(false); setResiInput(order.nomor_resi || ""); setCourierInput(order.jenis_pengiriman || ""); }}
-                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100"
-                  >
-                    <X className="h-3.5 w-3.5" /> Batal
+                    {trackingLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                    Lacak
                   </button>
                 </div>
-              </div>
-            ) : order.nomor_resi ? (
-              <div className="mt-2">
-                {order.jenis_pengiriman && (
-                  <p className="text-sm font-bold text-[#163f73]">{order.jenis_pengiriman}</p>
+
+                {trackingError && (
+                  <p className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100">{trackingError}</p>
                 )}
-                <p className="text-sm font-mono text-gray-800">{order.nomor_resi}</p>
+
+                {trackingData && trackingData.history && (
+                  <div className="mt-4 rounded-lg bg-white p-4 border border-gray-200">
+                    <div className="mb-4 pb-3 border-b border-gray-100">
+                      <p className="text-xs font-bold text-gray-500 uppercase">Status Terkini</p>
+                      <p className="text-sm font-bold text-[#163f73]">{trackingData.summary?.status || "Berjalan"}</p>
+                    </div>
+                    <div className="relative border-l-2 border-gray-100 ml-2 space-y-6">
+                      {trackingData.history.map((h: any, idx: number) => (
+                        <div key={idx} className="relative pl-5">
+                          <div className={`absolute -left-[5px] top-1 h-2 w-2 rounded-full ${idx === 0 ? 'bg-[#163f73] ring-4 ring-blue-50' : 'bg-gray-300'}`} />
+                          <p className={`text-sm ${idx === 0 ? 'font-bold text-gray-800' : 'font-medium text-gray-600'}`}>{h.desc}</p>
+                          <p className="text-xs text-gray-500 mt-1">{h.date} {h.location ? `• ${h.location}` : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="mt-2 text-sm italic text-gray-400">Belum ada nomor resi</p>
@@ -377,7 +400,47 @@ function OrderDetailInner() {
             <span className="text-lg font-extrabold text-[#163f73]">{formatRupiah(order.total_pembayaran)}</span>
           </div>
 
-          {(order.status_pesanan === "PENDING" || order.status_pesanan === "DIKONFIRMASI" || order.status_pesanan === "DIPROSES") && (
+          {(order.status_pesanan === "PENDING" || order.status_pesanan === "MENUNGGU_KONFIRMASI") && (
+            <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+              <h3 className="font-bold text-[#163f73]">Status Pembayaran: {order.status_pesanan === "PENDING" ? "Menunggu Pembayaran" : "Menunggu Konfirmasi"}</h3>
+              <p className="mt-1 text-sm text-blue-800">
+                {order.status_pesanan === "PENDING" 
+                  ? "Silakan hubungi Admin untuk meminta detail nomor rekening, lalu upload bukti pembayarannya agar pesanan Anda segera diproses."
+                  : "Bukti pembayaran Anda sedang dicek oleh Admin."}
+              </p>
+              
+              {order.bukti_pembayaran_url && (
+                <div className="mt-3">
+                  <a href={apiUrl(order.bukti_pembayaran_url)} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-[#0066ff] hover:underline">
+                    Lihat Bukti Terupload
+                  </a>
+                </div>
+              )}
+
+              {order.status_pesanan === "PENDING" && (
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={`https://wa.me/6282243293881?text=${encodeURIComponent(`Halo Admin, saya ingin meminta nomor rekening untuk pembayaran pesanan ${order.kode_pesanan}.`)}`}
+                    target="_blank"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#163f73] shadow-sm hover:bg-gray-50 border border-blue-200 transition-colors"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Minta Nomor Rekening
+                  </a>
+                  
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#163f73] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#0f2d55] transition-colors relative overflow-hidden">
+                    <input type="file" accept="image/*" onChange={handleUploadBukti} disabled={uploading} className="hidden" />
+                    {uploading ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Mengupload...</>
+                    ) : (
+                      <><Upload className="h-4 w-4" /> Upload Bukti Pembayaran</>
+                    )}
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(order.status_pesanan === "PENDING" || order.status_pesanan === "MENUNGGU_KONFIRMASI" || order.status_pesanan === "DIKONFIRMASI" || order.status_pesanan === "DIPROSES") && (
             <div className="mt-6 pt-4 border-t border-gray-100 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
