@@ -26,6 +26,8 @@ model User {
   updated_at   DateTime @updatedAt
   orders       Order[]
   cart_items   CartItem[]
+  notifications Notification[]
+  push_subscriptions PushSubscription[]
 }
 
 model Product {
@@ -110,4 +112,28 @@ model ChatbotLog {
   pertanyaan_user String   @db.Text
   jawaban_bot     String   @db.Text
   tanggal         DateTime @default(now())
+}
+
+model Notification {
+  id_notification Int      @id @default(autoincrement())
+  id_user         Int
+  user            User     @relation(fields: [id_user], references: [id_user], onDelete: Cascade)
+  title           String
+  message         String   @db.Text
+  type            String   @default("INFO") // INFO, ORDER, SHIPPING
+  is_read         Boolean  @default(false)
+  link            String?
+  created_at      DateTime @default(now())
+}
+
+model PushSubscription {
+  id_sub       Int      @id @default(autoincrement())
+  id_user      Int
+  user         User     @relation(fields: [id_user], references: [id_user], onDelete: Cascade)
+  endpoint     String   @db.Text
+  p256dh       String   @db.Text
+  auth         String
+  created_at   DateTime @default(now())
+
+  @@unique([endpoint(length: 255)])
 }

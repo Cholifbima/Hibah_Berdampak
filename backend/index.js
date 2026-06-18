@@ -18,6 +18,54 @@ const OpenAI = require('openai').default;
 
 require('dotenv').config();
 
+const webPush = require('web-push');
+
+// Setup VAPID Keys untuk Web Push Notification
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BNx2OMK_wcPmI10wTyyfZMFJIzml9d2kRw5mDUna_G3o2NxGqpMYuiYC9M0Ftf47l7IY7BoQFA9qaOeAEdXsiT0';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'PQiwejGuwrgXFz-W2aKL3HCVzCUJKdBgdow8aJ07jio';
+webPush.setVapidDetails(
+  'mailto:topassist@example.com',
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
+
+// Helper function untuk mengirim notifikasi in-app & push
+async function sendNotification(userId, title, message, type = 'INFO', link = null) {
+  try {
+    // 1. Simpan In-App Notification ke DB
+    await prisma.notification.create({
+      data: { id_user: userId, title, message, type, link }
+    });
+
+    // 2. Ambil Push Subscriptions user tersebut
+    const subs = await prisma.pushSubscription.findMany({ where: { id_user: userId } });
+    if (subs.length === 0) return;
+
+    // 3. Kirim Web Push ke semua devicenya
+    const payload = JSON.stringify({ title, body: message, url: link || '/' });
+    
+    for (const sub of subs) {
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth }
+      };
+      
+      try {
+        await webPush.sendNotification(pushSubscription, payload);
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          // Subscription sudah expired / unsubscribed, hapus dari DB
+          await prisma.pushSubscription.delete({ where: { id_sub: sub.id_sub } });
+        } else {
+          console.error('Gagal mengirim Web Push:', err);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error sendNotification:', error);
+  }
+}
+
 const rateLimitLib = require('express-rate-limit');
 
 // Rate limiter spesifik untuk AI Chat (Mencegah spam token OpenAI)
@@ -1094,6 +1142,45 @@ api.post('/orders/:id/upload-bukti', authMiddleware, upload.single('bukti'), asy
       }
     });
 
+    // --- Notifikasi WA ke Owner ---
+    try {
+      const ownerNumber = process.env.OWNER_WA_NUMBER || '08157799036'; // Ganti dengan nomor asli owner
+      const waBotUrl = process.env.WA_BOT_URL || 'http://127.0.0.1:3001';
+      const waBotSecret = process.env.WA_BOT_SECRET || 'topassist_rahasia_123';
+      
+      const message = `Halo Admin/Owner TopAssist! 📦\n\nAda transaksi baru yang menunggu konfirmasi pembayaran.\n\n` +
+                      `🛒 *Kode Pesanan:* ${order.kode_pesanan}\n` +
+                      `👤 *Pembeli:* ${order.nama_penerima}\n` +
+                      `💰 *Total Tagihan:* Rp${order.total_pembayaran.toLocaleString('id-ID')}\n\n` +
+                      `Pembeli sudah mengunggah bukti pembayaran. Segera cek mutasi rekening Anda dan periksa halaman Dasbor Admin TopAssist untuk memproses pesanan ini.\n\n` +
+                      `- _Sistem Otomatis TopAssist_`;
+
+      // Kirim tanpa harus menunggu fetch selesai (fire and forget) agar response tidak delay
+      fetch(`${waBotUrl}/api/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secretKey: waBotSecret, number: ownerNumber, message })
+      }).catch(e => console.error("WA Bot Error:", e.message));
+    } catch (waErr) {
+      console.error("Gagal mengirim notif WA ke Owner", waErr);
+    }
+    // ------------------------------
+
+    // --- Notifikasi Web Push + In-App ke Admin ---
+    try {
+      const adminUsers = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+      for (const admin of adminUsers) {
+        await sendNotification(
+          admin.id_user,
+          "Bukti Pembayaran Baru 💰",
+          `Pembeli ${order.nama_penerima} mengunggah bukti pembayaran untuk pesanan ${order.kode_pesanan}.`,
+          "ORDER",
+          `/admin/pesanan`
+        );
+      }
+    } catch (err) { console.error(err); }
+    // ---------------------------------
+
     res.json({ success: true, url: fileUrl });
   } catch (error) {
     console.error('Upload bukti error:', error);
@@ -1212,6 +1299,51 @@ api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
       data,
       include: { details: { include: { product: true } } },
     });
+
+    // --- Notifikasi Web Push + In-App ke Pembeli ---
+    if (status_pesanan === 'DIKIRIM' && updated.nomor_resi) {
+      await sendNotification(
+        updated.id_user,
+        "Pesanan Dikirim! 📦",
+        `Pesanan ${updated.kode_pesanan} sedang dalam perjalanan via ${updated.jenis_pengiriman}. Resi: ${updated.nomor_resi}`,
+        "SHIPPING",
+        `/pesanan/detail?id=${updated.id_order}`
+      );
+    } else if (status_pesanan === 'DIKONFIRMASI') {
+      await sendNotification(
+        updated.id_user,
+        "Pembayaran Diterima ✅",
+        `Pembayaran pesanan ${updated.kode_pesanan} telah dikonfirmasi dan pesanan sedang disiapkan.`,
+        "ORDER",
+        `/pesanan/detail?id=${updated.id_order}`
+      );
+    }
+    // ---------------------------------
+
+    // --- Notifikasi WA ke Pembeli ---
+    if (status_pesanan === 'DIKIRIM' && updated.nomor_resi && updated.no_telepon) {
+      try {
+        const waBotUrl = process.env.WA_BOT_URL || 'http://127.0.0.1:3001';
+        const waBotSecret = process.env.WA_BOT_SECRET || 'topassist_rahasia_123';
+        
+        const message = `Halo ${updated.nama_penerima}! 🎉\n\n` +
+                        `Kabar gembira! Pesanan Anda dengan kode *${updated.kode_pesanan}* sedang dalam perjalanan.\n\n` +
+                        `🚚 *Jasa Pengiriman:* ${updated.jenis_pengiriman?.toUpperCase() || 'Kurir'}\n` +
+                        `📦 *Nomor Resi:* ${updated.nomor_resi}\n\n` +
+                        `Anda bisa melacak paket secara real-time langsung melalui website TopAssist.\n` +
+                        `Terima kasih telah berbelanja di TopAssist! 😊`;
+
+        fetch(`${waBotUrl}/api/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secretKey: waBotSecret, number: updated.no_telepon, message })
+        }).catch(e => console.error("WA Bot Error:", e.message));
+      } catch (waErr) {
+        console.error("Gagal mengirim notif WA ke Pembeli", waErr);
+      }
+    }
+    // ---------------------------------
+
     res.json(updated);
   } catch (error) {
     console.error('Update order error:', error);
@@ -1254,6 +1386,62 @@ function adminMiddleware(req, res, next) {
 }
 
 
+
+// ─── Notifications API ──────────────────────────────────────────────────────
+api.post('/notifications/subscribe', authMiddleware, async (req, res) => {
+  try {
+    const { endpoint, keys } = req.body;
+    if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      return res.status(400).json({ error: 'Data subscription tidak valid' });
+    }
+
+    // Upsert subscription
+    const existing = await prisma.pushSubscription.findUnique({ where: { endpoint } });
+    if (existing) {
+      await prisma.pushSubscription.update({
+        where: { endpoint },
+        data: { id_user: req.userId, p256dh: keys.p256dh, auth: keys.auth }
+      });
+    } else {
+      await prisma.pushSubscription.create({
+        data: { id_user: req.userId, endpoint, p256dh: keys.p256dh, auth: keys.auth }
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Push Subscribe error:', error);
+    res.status(500).json({ error: 'Gagal subscribe notifikasi' });
+  }
+});
+
+api.get('/notifications', authMiddleware, async (req, res) => {
+  try {
+    const notifs = await prisma.notification.findMany({
+      where: { id_user: req.userId },
+      orderBy: { created_at: 'desc' },
+      take: 20
+    });
+    res.json(notifs);
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ error: 'Gagal mengambil notifikasi' });
+  }
+});
+
+api.patch('/notifications/:id/read', authMiddleware, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.notification.updateMany({
+      where: { id_notification: id, id_user: req.userId },
+      data: { is_read: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal membaca notifikasi' });
+  }
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 api.get('/admin/stats', adminMiddleware, async (req, res) => {
   try {
