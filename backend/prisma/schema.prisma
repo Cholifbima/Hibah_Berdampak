@@ -44,6 +44,7 @@ model Product {
   link_shopee     String?
   link_tokopedia  String?
   link_lazada     String?
+  link_tiktok     String?
   created_at      DateTime       @default(now())
   updated_at      DateTime       @updatedAt
   discounts       BulkDiscount[]
@@ -88,6 +89,7 @@ model Order {
   lng              Float?
   tanggal_pesanan  DateTime      @default(now())
   updated_at       DateTime      @updatedAt
+  bukti_pembayaran_url String?
   details          OrderDetail[]
 }
 

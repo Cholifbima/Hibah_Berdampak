@@ -18,6 +18,17 @@ const OpenAI = require('openai').default;
 
 require('dotenv').config();
 
+const rateLimitLib = require('express-rate-limit');
+
+// Rate limiter spesifik untuk AI Chat (Mencegah spam token OpenAI)
+const chatRateLimiter = rateLimitLib({
+  windowMs: 60 * 1000, // 1 menit
+  max: 10, // Maksimal 10 kali request per menit dari IP yang sama
+  message: { error: 'Terlalu banyak pesan. Mohon tunggu sebentar (1 menit) sebelum bertanya lagi.' },
+  standardHeaders: true, 
+  legacyHeaders: false,
+});
+
 // Simple rate limiting untuk API
 const requestCounts = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 menit
@@ -242,6 +253,24 @@ async function verifyTurnstile(token) {
 
 
 // Root health (Passenger / uptime checks)
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, 'bukti_' + Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 app.get('/', (req, res) => {
 
@@ -823,7 +852,7 @@ api.post('/products', adminMiddleware, async (req, res) => {
 
   try {
 
-    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori, link_shopee, link_tokopedia, link_lazada } = req.body;
+    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori, link_shopee, link_tokopedia, link_lazada, link_tiktok } = req.body;
 
     if (!nama_produk || harga_satuan == null || stok == null) {
 
@@ -852,6 +881,8 @@ api.post('/products', adminMiddleware, async (req, res) => {
         link_tokopedia: link_tokopedia || null,
 
         link_lazada: link_lazada || null,
+
+        link_tiktok: link_tiktok || null,
 
       },
 
@@ -883,9 +914,7 @@ api.put('/products/:id', adminMiddleware, async (req, res) => {
 
     if (!existing) return res.status(404).json({ error: 'Produk tidak ditemukan' });
 
-
-
-    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori, link_shopee, link_tokopedia, link_lazada } = req.body;
+    const { nama_produk, deskripsi, harga_satuan, stok, gambar_url, kategori, link_shopee, link_tokopedia, link_lazada, link_tiktok } = req.body;
 
     const product = await prisma.product.update({
 
@@ -910,6 +939,8 @@ api.put('/products/:id', adminMiddleware, async (req, res) => {
         ...(link_tokopedia !== undefined && { link_tokopedia: link_tokopedia || null }),
 
         ...(link_lazada !== undefined && { link_lazada: link_lazada || null }),
+
+        ...(link_tiktok !== undefined && { link_tiktok: link_tiktok || null }),
 
       },
 
@@ -967,7 +998,26 @@ api.post('/orders', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Data pesanan tidak lengkap' });
 
     const total = items.reduce((s, i) => s + i.subtotal, 0);
-    const uniqueKode = `#ORD-${Date.now().toString().slice(-6)}${Math.floor(Math.random()*100)}`;
+    const todayDate = new Date();
+    const yyyy = todayDate.getFullYear();
+    const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(todayDate.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}${mm}${dd}`;
+
+    const startOfDay = new Date(todayDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(todayDate.setHours(23, 59, 59, 999));
+
+    const todayOrderCount = await prisma.order.count({
+      where: {
+        tanggal_pesanan: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
+    const sequence = String(todayOrderCount + 1).padStart(4, '0');
+    const uniqueKode = `ORD-${dateStr}-${sequence}`;
 
     const order = await prisma.order.create({
       data: {
@@ -1034,6 +1084,41 @@ api.get('/orders/me', authMiddleware, async (req, res) => {
 
 
 
+// Endpoint upload bukti pembayaran
+api.post('/orders/:id/upload-bukti', authMiddleware, upload.single('bukti'), async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    if (!req.file) return res.status(400).json({ error: 'File tidak ditemukan' });
+
+    const order = await prisma.order.findUnique({ where: { id_order: orderId } });
+    if (!order) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+    }
+
+    if (order.id_user !== req.userId && req.userRole !== 'ADMIN') {
+      fs.unlinkSync(req.file.path);
+      return res.status(403).json({ error: 'Akses ditolak' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    
+    await prisma.order.update({
+      where: { id_order: orderId },
+      data: { 
+        bukti_pembayaran_url: fileUrl,
+        status_pesanan: 'MENUNGGU_KONFIRMASI'
+      }
+    });
+
+    res.json({ success: true, url: fileUrl });
+  } catch (error) {
+    console.error('Upload bukti error:', error);
+    if (req.file) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: 'Gagal mengupload bukti pembayaran' });
+  }
+});
+
 api.get('/orders/:id', authMiddleware, async (req, res) => {
 
   try {
@@ -1065,6 +1150,53 @@ api.get('/orders/:id', authMiddleware, async (req, res) => {
 });
 
 
+
+// Konfigurasi BinderByte API Keys (Round Robin)
+// Jika di server Domainesia (cPanel Node.js App), tambahkan Environment Variable:
+// Name: BINDERBYTE_API_KEY
+// Value: api_key_anda_1,api_key_anda_2
+const envKeys = process.env.BINDERBYTE_API_KEY 
+  ? process.env.BINDERBYTE_API_KEY.split(',').map(k => k.trim()).filter(Boolean)
+  : [];
+
+const BINDERBYTE_API_KEYS = envKeys.length > 0 ? envKeys : [
+  'ISI_API_KEY_BINDERBYTE_ANDA_DISINI', // Fallback jika .env belum diisi
+];
+let currentBinderByteIndex = 0;
+
+api.get('/orders/:id/track', authMiddleware, async (req, res) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id_order: parseInt(req.params.id) } });
+    if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+    
+    if (order.id_user !== req.userId && req.userRole !== 'ADMIN')
+      return res.status(403).json({ error: 'Akses ditolak' });
+
+    if (!order.nomor_resi || !order.jenis_pengiriman) {
+      return res.status(400).json({ error: 'Nomor resi atau kurir belum tersedia' });
+    }
+
+    // Periksa apakah API keys sudah diatur
+    if (BINDERBYTE_API_KEYS.length === 0 || BINDERBYTE_API_KEYS[0].includes('ISI_API_KEY_BINDERBYTE_ANDA_DISINI')) {
+      return res.status(500).json({ error: 'API Key BinderByte belum dikonfigurasi di backend/index.js' });
+    }
+
+    const apiKey = BINDERBYTE_API_KEYS[currentBinderByteIndex];
+    currentBinderByteIndex = (currentBinderByteIndex + 1) % BINDERBYTE_API_KEYS.length;
+
+    const response = await fetch(`https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${order.jenis_pengiriman.toLowerCase()}&awb=${order.nomor_resi}`);
+    const data = await response.json();
+
+    if (data.status !== 200) {
+      return res.status(400).json({ error: data.message || 'Gagal melacak resi' });
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error('Tracking error:', error);
+    res.status(500).json({ error: 'Gagal menghubungi server pelacakan' });
+  }
+});
 
 api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
 
@@ -1478,7 +1610,7 @@ const openai = process.env.OPENAI_API_KEY
 
 
 
-api.post('/chat', async (req, res) => {
+api.post('/chat', chatRateLimiter, async (req, res) => {
   try {
     const { messages } = req.body;
     
