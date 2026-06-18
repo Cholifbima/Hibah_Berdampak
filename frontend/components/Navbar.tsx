@@ -8,6 +8,7 @@ import { Menu, X, ShoppingCart, LogOut, UserCircle, Package, Search } from "luci
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { fetchProducts, type Product } from "@/lib/api";
+import { NotificationBell } from "./NotificationBell";
 
 const NAV_LINKS = [
   { href: "/", label: "Beranda" },
@@ -191,6 +192,11 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {user && (
+              <div className="hidden sm:block">
+                <NotificationBell />
+              </div>
+            )}
             <Link href="/keranjang" className={`relative p-2 rounded-full transition-all ${iconBaseClass}`}>
               <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
               {totalItems > 0 && (

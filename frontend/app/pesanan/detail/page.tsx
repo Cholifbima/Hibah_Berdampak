@@ -410,9 +410,13 @@ function OrderDetailInner() {
               </p>
               
               {order.bukti_pembayaran_url && (
-                <div className="mt-3">
-                  <a href={apiUrl(order.bukti_pembayaran_url)} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-[#0066ff] hover:underline">
-                    Lihat Bukti Terupload
+                <div className="mt-4 border-t border-blue-100 pt-4">
+                  <p className="text-xs font-semibold text-[#163f73] mb-2">Bukti yang diunggah:</p>
+                  <div className="relative h-32 w-full sm:w-48 overflow-hidden rounded-lg border border-blue-200 bg-white">
+                    <Image src={apiUrl(order.bukti_pembayaran_url)} alt="Bukti Pembayaran Anda" fill className="object-contain" unoptimized />
+                  </div>
+                  <a href={apiUrl(order.bukti_pembayaran_url)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-bold text-[#0066ff] hover:underline">
+                    Buka Gambar Penuh ↗
                   </a>
                 </div>
               )}

@@ -100,6 +100,7 @@ const STATUS_LIST = ["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", 
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   PENDING:      { label: "Pending",      color: "text-amber-700",  bg: "bg-amber-50 border-amber-200",   icon: Clock },
+  MENUNGGU_KONFIRMASI: { label: "Menunggu Konfirmasi", color: "text-blue-600", bg: "bg-blue-50 border-blue-200", icon: CheckCircle },
   DIKONFIRMASI: { label: "Dikonfirmasi", color: "text-blue-700",   bg: "bg-blue-50 border-blue-200",     icon: CheckCircle },
   DIPROSES:     { label: "Diproses",     color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200", icon: Package },
   DIKIRIM:      { label: "Dikirim",      color: "text-purple-700", bg: "bg-purple-50 border-purple-200", icon: Truck },
@@ -110,6 +111,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; ico
 
 const NEXT_STATUS: Record<string, string[]> = {
   PENDING:      ["DIKONFIRMASI", "DIBATALKAN"],
+  MENUNGGU_KONFIRMASI: ["DIKONFIRMASI", "DIBATALKAN"],
   DIKONFIRMASI: ["DIPROSES", "DIBATALKAN"],
   DIPROSES:     ["DIKIRIM"],
   DIKIRIM:      [],
@@ -248,6 +250,20 @@ function OrderCard({ order, token, onUpdate, onDelete }: { order: Order; token: 
               </div>
             ))}
           </div>
+
+          {/* Bukti Pembayaran */}
+          {order.bukti_pembayaran_url && (
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-[12px] font-bold text-[#163f73] mb-2">Bukti Pembayaran:</p>
+              <div className="relative h-48 w-full sm:w-64 overflow-hidden rounded-lg border border-gray-200">
+                <Image src={apiUrl(order.bukti_pembayaran_url)} alt="Bukti Pembayaran" fill className="object-contain bg-gray-50" unoptimized />
+              </div>
+              <a href={apiUrl(order.bukti_pembayaran_url)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] font-bold text-blue-600 hover:underline">
+                Buka Gambar Penuh ↗
+              </a>
+            </div>
+          )}
+
 
           {/* Update status */}
           {nextStatuses.length > 0 && (
