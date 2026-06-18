@@ -1910,7 +1910,7 @@ api.post('/chat', chatRateLimiter, async (req, res) => {
         reply = `Maaf, saya tidak menemukan produk yang cocok dengan "${lastUserMessage}".\n\nKami punya **${products.length} produk** siap kirim!\n\nCoba tanyakan:\n• "tas pancing"\n• "tas olahraga"\n• "produk murah"\n• "promo grosir"\n\nAtau chat WhatsApp untuk custom order! 😊`;
       }
 
-      return res.json({ reply, products: matchedProducts });
+      return res.json({ reply: reply.replace(/\[ID:\d+\]/g, '').replace(/ {2,}/g, ' ').trim(), products: matchedProducts });
     }
 
     // OpenAI tersedia - gunakan AI
@@ -2020,7 +2020,7 @@ ATURAN MENJAWAB:
 
     // Bersihkan tag [ID:xxx] dari teks balasan agar tidak tampil ke user
 
-    const cleanReply = reply.replace(/\[ID:\d+\]/g, '').replace(/\s{2,}/g, ' ').trim();
+    const cleanReply = reply.replace(/\[ID:\d+\]/g, '').replace(/ {2,}/g, ' ').trim();
 
 
 

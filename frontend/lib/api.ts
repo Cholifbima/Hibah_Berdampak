@@ -49,13 +49,13 @@ export interface Product {
 }
 
 export async function fetchProducts(): Promise<Product[]> {
-  const res = await fetch(apiUrl("/products"), { cache: "no-store" });
+  const res = await fetch(apiUrl("/products"), { next: { revalidate: 60 } });
   if (!res.ok) throw new Error("Gagal mengambil data produk");
   return res.json();
 }
 
 export async function fetchBestSelling(): Promise<Product[]> {
-  const res = await fetch(apiUrl("/products/best-selling"), { cache: "no-store" });
+  const res = await fetch(apiUrl("/products/best-selling"), { next: { revalidate: 60 } });
   if (!res.ok) throw new Error("Gagal mengambil data best selling");
   return res.json();
 }
