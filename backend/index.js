@@ -1268,6 +1268,32 @@ api.get('/orders/:id/track', authMiddleware, async (req, res) => {
   }
 });
 
+api.get('/track', authMiddleware, async (req, res) => {
+  try {
+    const { courier, awb } = req.query;
+    if (!courier || !awb) return res.status(400).json({ error: 'Kurir dan nomor resi harus diisi' });
+
+    if (BINDERBYTE_API_KEYS.length === 0 || BINDERBYTE_API_KEYS[0].includes('ISI_API_KEY_BINDERBYTE_ANDA_DISINI')) {
+      return res.status(500).json({ error: 'API Key BinderByte belum dikonfigurasi di backend/index.js' });
+    }
+
+    const apiKey = BINDERBYTE_API_KEYS[currentBinderByteIndex];
+    currentBinderByteIndex = (currentBinderByteIndex + 1) % BINDERBYTE_API_KEYS.length;
+
+    const response = await fetch(`https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${courier.toLowerCase()}&awb=${awb}`);
+    const data = await response.json();
+
+    if (data.status !== 200) {
+      return res.status(400).json({ error: data.message || 'Gagal melacak resi' });
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error('Manual tracking error:', error);
+    res.status(500).json({ error: 'Gagal menghubungi server pelacakan' });
+  }
+});
+
 api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
 
   try {
@@ -1299,6 +1325,22 @@ api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
       data,
       include: { details: { include: { product: true } } },
     });
+
+    // --- Pengurangan Stok saat status menjadi SELESAI ---
+    if (order.status_pesanan !== 'SELESAI' && status_pesanan === 'SELESAI') {
+      try {
+        await prisma.$transaction(
+          updated.details.map((detail) => 
+            prisma.product.update({
+              where: { id_product: detail.id_product },
+              data: { stok: { decrement: detail.kuantitas } }
+            })
+          )
+        );
+      } catch (err) {
+        console.error("Gagal mengurangi stok produk:", err);
+      }
+    }
 
     // --- Notifikasi Web Push + In-App ke Pembeli ---
     if (status_pesanan === 'DIKIRIM' && updated.nomor_resi) {
@@ -1715,11 +1757,11 @@ api.put('/users/me', authMiddleware, async (req, res) => {
   try {
     const { nama_lengkap, email, no_whatsapp, avatar_url, alamat, lat, lng } = req.body;
     const data = {};
-    if (nama_lengkap !== undefined) data.nama_lengkap = nama_lengkap.trim();
-    if (email !== undefined) data.email = email.trim() || null;
-    if (no_whatsapp !== undefined) data.no_whatsapp = no_whatsapp.trim();
+    if (nama_lengkap !== undefined) data.nama_lengkap = nama_lengkap ? nama_lengkap.trim() : null;
+    if (email !== undefined) data.email = email ? email.trim() : null;
+    if (no_whatsapp !== undefined) data.no_whatsapp = no_whatsapp ? no_whatsapp.trim() : null;
     if (avatar_url !== undefined) data.avatar_url = avatar_url || null;
-    if (alamat !== undefined) data.alamat = alamat.trim() || null;
+    if (alamat !== undefined) data.alamat = alamat ? alamat.trim() : null;
     if (lat !== undefined) data.lat = lat === null ? null : parseFloat(lat);
     if (lng !== undefined) data.lng = lng === null ? null : parseFloat(lng);
 

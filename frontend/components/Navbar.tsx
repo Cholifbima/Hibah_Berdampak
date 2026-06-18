@@ -131,7 +131,7 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`text-[15px] font-bold transition-all duration-200 ${linkClass}`}
+                    className={`whitespace-nowrap text-[15px] font-bold transition-all duration-200 ${linkClass}`}
                   >
                     {link.label}
                   </Link>
@@ -192,22 +192,23 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            {user && (
-              <div className="hidden sm:block">
-                <NotificationBell />
-              </div>
-            )}
-            <Link href="/keranjang" className={`relative p-2 rounded-full transition-all ${iconBaseClass}`}>
-              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
-              {totalItems > 0 && (
-                <span className="absolute top-0 right-0 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-[1.5px] ring-white">
-                  {totalItems > 99 ? "99" : totalItems}
-                </span>
+            {/* Bell & Cart Group */}
+            <div className="flex items-center gap-1">
+              {user && (
+                <NotificationBell className={`p-2 ${iconBaseClass}`} />
               )}
-            </Link>
+              <Link href="/keranjang" className={`relative p-2 rounded-full transition-all ${iconBaseClass}`}>
+                <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
+                {totalItems > 0 && (
+                  <span className="absolute top-0 right-0 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-[1.5px] ring-white">
+                    {totalItems > 99 ? "99" : totalItems}
+                  </span>
+                )}
+              </Link>
+            </div>
 
             {user ? (
-              <div className="hidden sm:flex items-center gap-1">
+              <div className="hidden sm:flex items-center gap-1 sm:gap-2 ml-1">
                 {user.role === "ADMIN" && (
                   <Link href="/admin" className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${isTransparent ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/40 border border-amber-300/30' : 'text-amber-600 bg-amber-50 hover:bg-amber-100'}`}>
                     Admin

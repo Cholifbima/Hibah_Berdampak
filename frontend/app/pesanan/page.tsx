@@ -90,38 +90,32 @@ function StatusTimeline({ status }: { status: string }) {
 }
 
 function ManualTrackingTab() {
+  const { token } = useAuth();
   const [resi, setResi] = useState("");
   const [courier, setCourier] = useState("jne");
-  const [result, setResult] = useState<string | null>(null);
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState("");
 
-  function handleTrack(e: React.FormEvent) {
+  async function handleTrack(e: React.FormEvent) {
     e.preventDefault();
-    if (!resi.trim()) return;
+    if (!resi.trim() || !token) return;
     
-    // Mock data untuk testing
-    if (resi.toUpperCase() === "TEST12345" || resi.toUpperCase() === "MOCKRESI") {
-      setResult(
-        `[MOCK DATA - TESTING]\n\n` +
-        `Status: DALAM PENGIRIMAN (Delivering)\n` +
-        `Kurir: ${courier.toUpperCase()}\n` +
-        `Resi: ${resi.toUpperCase()}\n\n` +
-        `Riwayat Perjalanan:\n` +
-        `• Hari ini, 08:30 - Kurir sedang mengirim paket ke alamat penerima.\n` +
-        `• Kemarin, 14:15 - Paket telah tiba di hub penyortiran kota tujuan.\n` +
-        `• 2 Hari lalu, 09:00 - Paket telah diserahkan ke pihak ekspedisi.\n` +
-        `• 2 Hari lalu, 07:30 - Pesanan sedang disiapkan oleh penjual.`
-      );
-      return;
-    }
+    setTrackingLoading(true);
+    setTrackingError("");
+    setTrackingData(null);
 
-    setResult(
-      `Fitur tracking resi otomatis akan segera tersedia.\n\nSementara itu, silakan cek resi "${resi}" melalui website resmi kurir:\n\n` +
-        `• JNE: https://www.jne.co.id/id/tracking/trace\n` +
-        `• J&T: https://www.jet.co.id/track\n` +
-        `• SiCepat: https://www.sicepat.com/checkAwb\n` +
-        `• AnterAja: https://anteraja.id/tracking\n\n` +
-        `*(Tips: Coba masukkan resi "TEST12345" untuk melihat contoh tampilan resi otomatis)*`
-    );
+    try {
+      const res = await fetch(apiUrl(`/track?courier=${courier}&awb=${resi}`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal melacak resi");
+      setTrackingData(data.data);
+    } catch (err: any) {
+      setTrackingError(err.message);
+    }
+    setTrackingLoading(false);
   }
 
   return (
@@ -159,18 +153,40 @@ function ManualTrackingTab() {
 
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#163f73] py-3.5 text-sm font-bold text-white hover:bg-[#0f2d55] transition-colors"
+          disabled={trackingLoading || !resi.trim()}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#163f73] py-3.5 text-sm font-bold text-white hover:bg-[#0f2d55] disabled:opacity-50 transition-colors"
         >
-          <Search className="h-4 w-4" />
+          {trackingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           Lacak Pengiriman
         </button>
       </form>
 
-      {result && (
-        <div className="mt-4 rounded-xl bg-blue-50 p-4">
-          <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-700 sm:text-sm">
-            {result}
-          </pre>
+      {trackingError && (
+        <div className="mt-4 rounded-xl bg-red-50 border border-red-100 p-4">
+          <p className="text-sm text-red-600">{trackingError}</p>
+        </div>
+      )}
+
+      {trackingData && trackingData.history && (
+        <div className="mt-6 rounded-xl bg-gray-50 border border-gray-100 p-4 sm:p-5">
+          <div className="mb-5 border-b border-gray-200 pb-4">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Status Terkini</p>
+            <p className="mt-1 text-base font-bold text-[#163f73]">{trackingData.summary?.status || "Berjalan"}</p>
+            <div className="mt-2 flex items-center gap-3 text-sm text-gray-600">
+              <span className="font-semibold uppercase">{trackingData.summary?.courier}</span>
+              <span className="text-gray-300">|</span>
+              <span>{trackingData.summary?.awb}</span>
+            </div>
+          </div>
+          <div className="relative border-l-2 border-gray-200 ml-2 space-y-6">
+            {trackingData.history.map((h: any, idx: number) => (
+              <div key={idx} className="relative pl-6">
+                <div className={`absolute -left-[7px] top-1 h-3 w-3 rounded-full ${idx === 0 ? 'bg-[#163f73] ring-4 ring-blue-50' : 'bg-gray-300'}`} />
+                <p className={`text-sm ${idx === 0 ? 'font-bold text-gray-800' : 'font-medium text-gray-600'}`}>{h.desc}</p>
+                <p className="text-xs text-gray-500 mt-1.5">{h.date} {h.location ? `• ${h.location}` : ''}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

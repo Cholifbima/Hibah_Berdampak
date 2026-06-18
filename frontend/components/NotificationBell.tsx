@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import { apiUrl } from "@/lib/api";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BNx2OMK_wcPmI10wTyyfZMFJIzml9d2kRw5mDUna_G3o2NxGqpMYuiYC9M0Ftf47l7IY7BoQFA9qaOeAEdXsiT0';
@@ -23,7 +23,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-export function NotificationBell() {
+export function NotificationBell({ className }: { className?: string }) {
   const { user, token } = useAuth();
   const [notifs, setNotifs] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -106,12 +106,12 @@ export function NotificationBell() {
   const unreadCount = notifs.filter(n => !n.is_read).length;
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative inline-flex items-center justify-center" ref={dropdownRef}>
       <button 
         onClick={() => setOpen(!open)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+        className={`relative rounded-full transition-colors ${className || 'text-gray-600 hover:bg-gray-100 p-2'}`}
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
         {unreadCount > 0 && (
           <span className="absolute right-2 top-2 flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -121,7 +121,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-2xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="fixed sm:absolute top-[60px] sm:top-full left-4 right-4 sm:left-auto sm:right-0 sm:mt-2 sm:w-80 origin-top sm:origin-top-right rounded-2xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-[10000] overflow-hidden flex flex-col max-h-[85vh]">
           <div className="bg-[#163f73] px-4 py-3 flex justify-between items-center shrink-0">
             <h3 className="text-sm font-bold text-white">Notifikasi</h3>
             <span className="text-xs text-blue-200 bg-white/10 px-2 py-0.5 rounded-full">{unreadCount} baru</span>
