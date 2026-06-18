@@ -8,9 +8,10 @@ import { getProductThumbnail } from "@/lib/product-gallery";
 
 interface ProductCardProps {
   product: Product;
+  isBestSeller?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, isBestSeller = false }: ProductCardProps) {
   // Logika diskon coret (retail)
   const hasDiskon = product.harga_asli && product.harga_satuan && product.harga_asli > product.harga_satuan;
   const calculatedDiscount = hasDiskon
@@ -36,14 +37,16 @@ export default function ProductCard({ product }: ProductCardProps) {
       className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-200/50 border border-gray-200 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#163f73]/30 hover:shadow-xl hover:shadow-[#163f73]/10"
     >
       {/* Badge Best Seller */}
-      <div className="absolute top-2.5 left-2.5 z-10">
-        <div className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-[#f5a623] to-[#f7c948] px-2.5 py-1 shadow-md">
-          <Star className="h-2.5 w-2.5 fill-[#382317] text-[#382317]" />
-          <span className="text-[9px] font-extrabold uppercase tracking-wide text-[#382317] sm:text-[10px]">
-            Best Seller
-          </span>
+      {isBestSeller && (
+        <div className="absolute top-2.5 left-2.5 z-10">
+          <div className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-[#f5a623] to-[#f7c948] px-2.5 py-1 shadow-md">
+            <Star className="h-2.5 w-2.5 fill-[#382317] text-[#382317]" />
+            <span className="text-[9px] font-extrabold uppercase tracking-wide text-[#382317] sm:text-[10px]">
+              Best Seller
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Discount badge top right */}
       {hasDiskon && discountPercent > 0 && product.stok > 0 && (

@@ -28,7 +28,7 @@ export default function BestSellingSection({ products }: BestSellingSectionProps
         <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:mt-12">
           {products.map((product, i) => (
             <ScrollReveal key={product.id_product} delay={i * 80} direction="up" className="h-full">
-              <ProductCard product={product} />
+              <ProductCard product={product} isBestSeller={true} />
             </ScrollReveal>
           ))}
         </div>

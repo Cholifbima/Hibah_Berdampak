@@ -154,10 +154,8 @@ export default function OrderForm() {
       if (user.no_whatsapp) setTelepon(user.no_whatsapp);
       if (user.alamat) {
         setAlamat(user.alamat);
-        const parts = user.alamat.split(",").map(p => p.trim());
-        if (parts.length >= 3) {
-          setProvinsi(parts[parts.length - 2]);
-        }
+        // Biarkan Nominatim yang mensinkronkan provinsi dll jika lat/lng tersedia
+        // atau biarkan user mengatur manual jika tidak ada lat/lng
       }
       if (user.lat) setLat(user.lat);
       if (user.lng) setLng(user.lng);
@@ -172,7 +170,10 @@ export default function OrderForm() {
     const stateName = addressDetails.state || addressDetails.province;
     if (stateName) {
       matchedProv = provinces.find(p => p.name.toLowerCase() === stateName.toLowerCase() || stateName.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(stateName.toLowerCase()));
-      if (matchedProv) setSelectedProv({id: matchedProv.id, name: matchedProv.name});
+      if (matchedProv) {
+        setSelectedProv({id: matchedProv.id, name: matchedProv.name});
+        setProvinsi(""); // Bersihkan fallback provinsi
+      }
     }
 
     if (matchedProv) {

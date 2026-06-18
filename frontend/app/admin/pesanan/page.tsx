@@ -122,12 +122,31 @@ const NEXT_STATUS: Record<string, string[]> = {
 function OrderCard({ order, token, onUpdate, onDelete }: { order: Order; token: string; onUpdate: (updated: Order) => void, onDelete: (id: number) => void }) {
   const [open, setOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState("");
   const cfg = STATUS_CFG[order.status_pesanan] ?? STATUS_CFG.PENDING;
   const StatusIcon = cfg.icon;
   const nextStatuses = NEXT_STATUS[order.status_pesanan] ?? [];
 
   const [resi, setResi] = useState(order.nomor_resi || "");
   const [kurir, setKurir] = useState(order.jenis_pengiriman || "JNE");
+
+  async function handleTrack() {
+    setTrackingLoading(true);
+    setTrackingError("");
+    try {
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/track`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal melacak resi");
+      setTrackingData(data.data);
+    } catch (err: any) {
+      setTrackingError(err.message);
+    }
+    setTrackingLoading(false);
+  }
 
   async function handleUpdate(newStatus: string) {
     if (newStatus === "DIKIRIM" && !resi.trim()) {
@@ -182,8 +201,33 @@ function OrderCard({ order, token, onUpdate, onDelete }: { order: Order; token: 
             {order.catatan && <div className="col-span-2"><span className="text-gray-500">Catatan:</span> <span className="font-medium text-gray-800">{order.catatan}</span></div>}
             {order.nomor_resi && (
               <div className="col-span-2 mt-1 rounded bg-blue-50 p-2 border border-blue-100">
-                <span className="text-gray-500 text-[11px] block mb-0.5">Pengiriman:</span>
-                <span className="font-bold text-[#163f73]">{order.jenis_pengiriman || "Kurir"} - {order.nomor_resi}</span>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-gray-500 text-[11px] block mb-0.5">Pengiriman:</span>
+                    <span className="font-bold uppercase text-[#163f73]">{order.jenis_pengiriman || "Kurir"} - {order.nomor_resi}</span>
+                  </div>
+                  <button onClick={handleTrack} disabled={trackingLoading} className="flex items-center gap-1.5 rounded-lg bg-[#163f73] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#0f2d55] disabled:opacity-50 transition-colors">
+                    {trackingLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                    Lacak
+                  </button>
+                </div>
+                {trackingError && (
+                  <p className="mt-2 text-[11px] text-red-600 bg-red-50 p-1.5 rounded border border-red-100">{trackingError}</p>
+                )}
+                {trackingData && trackingData.history && (
+                  <div className="mt-2 rounded bg-white p-3 border border-blue-100">
+                    <p className="text-[11px] font-bold text-[#163f73] mb-2">{trackingData.summary?.status || "Berjalan"}</p>
+                    <div className="relative border-l border-blue-200 ml-1.5 space-y-3">
+                      {trackingData.history.map((h: any, idx: number) => (
+                        <div key={idx} className="relative pl-3">
+                          <div className={`absolute -left-[3px] top-1 h-1.5 w-1.5 rounded-full ${idx === 0 ? 'bg-[#163f73]' : 'bg-gray-300'}`} />
+                          <p className={`text-[11px] ${idx === 0 ? 'font-bold text-gray-800' : 'font-medium text-gray-600'}`}>{h.desc}</p>
+                          <p className="text-[10px] text-gray-500">{h.date} {h.location ? `• ${h.location}` : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

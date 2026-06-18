@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatRupiah, apiUrl } from "@/lib/api";
 import {
   ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, Phone,
-  User, FileText, Loader2, Edit3, Save, X, MessageCircle, Upload,
+  User, FileText, Loader2, Edit3, Save, X, MessageCircle, Upload, Search,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";

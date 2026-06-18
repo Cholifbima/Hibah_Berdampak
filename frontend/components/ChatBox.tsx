@@ -201,8 +201,10 @@ export default function ChatBox({ products: _ }: ChatBoxProps) {
                       __html: msg.content
                         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#163f73] font-semibold">$1</strong>')
                         .replace(/(\d+\.\s)/g, '<br/><span class="font-bold text-[#163f73] mr-1">$1</span>')
+                        .replace(/(-\s)(?![^<]*>)/g, '<br/>&bull; ')
                         .replace(/\n/g, '<br/>')
-                        .replace(/<br\/><br\/>/g, '</p><p class="mt-2">')
+                        .replace(/(<br\/>){2,}/g, '<br/><br/>')
+                        .replace(/^<br\/>/, '')
                     }}
                   />
                 </div>
