@@ -192,12 +192,12 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            {/* Bell & Cart Group */}
+            {/* Bell, Cart, & Pesanan Group */}
             <div className="flex items-center gap-1">
               {user && (
                 <NotificationBell className={`p-2 ${iconBaseClass}`} />
               )}
-              <Link href="/keranjang" className={`relative p-2 rounded-full transition-all ${iconBaseClass}`}>
+              <Link href="/keranjang" className={`relative p-2 rounded-full transition-all ${iconBaseClass}`} title="Keranjang">
                 <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
                 {totalItems > 0 && (
                   <span className="absolute top-0 right-0 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-[1.5px] ring-white">
@@ -205,6 +205,11 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
                   </span>
                 )}
               </Link>
+              {user && (
+                <Link href="/pesanan" className={`rounded-full p-2 transition-all ${iconBaseClass} flex items-center justify-center`} title="Pesanan Saya">
+                  <Image src="/assets/icons/IkonHibah/pesanan.png" alt="Pesanan" width={22} height={22} className={`object-contain transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} />
+                </Link>
+              )}
             </div>
 
             {user ? (
@@ -214,9 +219,6 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
                     Admin
                   </Link>
                 )}
-                <Link href="/pesanan" className={`rounded-full p-2 transition-all ${iconBaseClass} flex items-center justify-center`} title="Pesanan Saya">
-                  <Image src="/assets/icons/IkonHibah/pesanan.png" alt="Pesanan" width={22} height={22} className={`object-contain transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} />
-                </Link>
                 <Link href="/profil" className={`flex items-center gap-2 rounded-full p-1 pr-3 transition-all border ${isTransparent ? 'hover:bg-white/10 border-transparent' : 'hover:bg-gray-50 border-transparent hover:border-gray-100'}`} title="Edit Profil">
                   {user.avatar_url ? (
                     <img 
@@ -375,6 +377,9 @@ export default function Navbar({ transparentOnTop = false }: NavbarProps) {
                     Panel Admin
                   </Link>
                 )}
+                <Link href="/profil" onClick={() => setOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-bold text-[#163f73] transition-colors hover:bg-gray-50">
+                  <UserCircle className="h-4 w-4" /> Profil Saya
+                </Link>
                 <Link href="/pesanan" onClick={() => setOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 py-2.5 text-sm font-bold text-[#0066ff] transition-colors hover:bg-blue-100">
                   <Image src="/assets/icons/IkonHibah/pesanan.png" alt="Pesanan" width={18} height={18} className="object-contain" /> Pesanan Saya
                 </Link>

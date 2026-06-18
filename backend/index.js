@@ -1757,11 +1757,11 @@ api.put('/users/me', authMiddleware, async (req, res) => {
   try {
     const { nama_lengkap, email, no_whatsapp, avatar_url, alamat, lat, lng } = req.body;
     const data = {};
-    if (nama_lengkap !== undefined) data.nama_lengkap = nama_lengkap ? nama_lengkap.trim() : null;
-    if (email !== undefined) data.email = email ? email.trim() : null;
-    if (no_whatsapp !== undefined) data.no_whatsapp = no_whatsapp ? no_whatsapp.trim() : null;
+    if (nama_lengkap !== undefined) data.nama_lengkap = typeof nama_lengkap === 'string' ? nama_lengkap.trim() : '';
+    if (email !== undefined) data.email = typeof email === 'string' && email.trim() !== '' ? email.trim() : null;
+    if (no_whatsapp !== undefined) data.no_whatsapp = typeof no_whatsapp === 'string' ? no_whatsapp.trim() : '';
     if (avatar_url !== undefined) data.avatar_url = avatar_url || null;
-    if (alamat !== undefined) data.alamat = alamat ? alamat.trim() : null;
+    if (alamat !== undefined) data.alamat = typeof alamat === 'string' && alamat.trim() !== '' ? alamat.trim() : null;
     if (lat !== undefined) data.lat = lat === null ? null : parseFloat(lat);
     if (lng !== undefined) data.lng = lng === null ? null : parseFloat(lng);
 

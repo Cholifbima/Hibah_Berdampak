@@ -602,30 +602,26 @@ export default function AdminProdukPage() {
             </button>
           </div>
 
-          {/* ── Category chips (horizontal scroll) ── */}
+          {/* ── Category Dropdown Filter ── */}
           {!loading && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {categories.map((kat) => {
-                const count = kat === "Semua" ? products.length : products.filter((p) => normalizeKat(p.kategori) === kat).length;
-                const active = activeKategori === kat;
-                return (
-                  <button
-                    key={kat}
-                    type="button"
-                    onClick={() => setActiveKategori(kat)}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                      active
-                        ? "border-[#163f73] bg-[#163f73] text-white"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-[#163f73]/40 hover:text-[#163f73]"
-                    }`}
-                  >
-                    {kat}
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="relative">
+              <select
+                value={activeKategori}
+                onChange={(e) => setActiveKategori(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] font-semibold text-gray-700 shadow-sm focus:border-[#163f73] focus:outline-none focus:ring-1 focus:ring-[#163f73]/20"
+              >
+                {categories.map((kat) => {
+                  const count = kat === "Semua" ? products.length : products.filter((p) => normalizeKat(p.kategori) === kat).length;
+                  return (
+                    <option key={kat} value={kat}>
+                      {kat} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                <Filter className="h-4 w-4" />
+              </div>
             </div>
           )}
 

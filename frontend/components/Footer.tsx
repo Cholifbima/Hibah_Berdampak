@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
 
 export default function Footer() {
@@ -133,8 +134,8 @@ export default function Footer() {
             © 2026 TopAssist Bag Store. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm font-medium text-gray-400">
-            <a href="#" className="hover:text-[#163f73] transition-colors">Syarat &amp; Ketentuan</a>
-            <a href="#" className="hover:text-[#163f73] transition-colors">Kebijakan Privasi</a>
+            <Link href="/syarat-ketentuan" className="hover:text-[#163f73] transition-colors">Syarat &amp; Ketentuan</Link>
+            <Link href="/kebijakan-privasi" className="hover:text-[#163f73] transition-colors">Kebijakan Privasi</Link>
           </div>
         </div>
 

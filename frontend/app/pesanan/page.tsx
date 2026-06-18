@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { formatRupiah, apiUrl } from "@/lib/api";
-import { Package, Clock, Truck, CheckCircle, Search, ChevronRight, ShoppingBag, LogIn, Loader2 } from "lucide-react";
+import { Package, Clock, Truck, CheckCircle, Search, ChevronRight, ChevronDown, ShoppingBag, LogIn, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -341,18 +341,21 @@ export default function PesananPage() {
         ) : (
           <>
             {/* Filter */}
-            <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
-              {["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", "SELESAI", "MENUNGGU_PEMBATALAN", "DIBATALKAN"].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setFilterStatus(s)}
-                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors ${
-                    filterStatus === s ? "bg-[#163f73] text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  {s === "SEMUA" ? "Semua" : (STATUS_CONFIG[s]?.label || s)}
-                </button>
-              ))}
+            <div className="mt-5 relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-semibold text-gray-700 shadow-sm focus:border-[#163f73] focus:outline-none focus:ring-2 focus:ring-[#163f73]/20"
+              >
+                {["SEMUA", "PENDING", "DIKONFIRMASI", "DIPROSES", "DIKIRIM", "SELESAI", "MENUNGGU_PEMBATALAN", "DIBATALKAN"].map((s) => (
+                  <option key={s} value={s}>
+                    {s === "SEMUA" ? "Semua Pesanan" : (STATUS_CONFIG[s]?.label || s)}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                <ChevronDown className="h-5 w-5" />
+              </div>
             </div>
 
             {/* Order list */}
