@@ -254,23 +254,6 @@ async function verifyTurnstile(token) {
 
 // Root health (Passenger / uptime checks)
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, 'bukti_' + Date.now() + path.extname(file.originalname));
-  }
-});
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
-});
 
 app.get('/', (req, res) => {
 
