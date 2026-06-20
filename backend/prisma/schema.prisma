@@ -92,6 +92,7 @@ model Order {
   tanggal_pesanan  DateTime      @default(now())
   updated_at       DateTime      @updatedAt
   bukti_pembayaran_url String?
+  bukti_diterima_url   String?
   details          OrderDetail[]
 }
 

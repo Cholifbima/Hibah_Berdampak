@@ -46,6 +46,7 @@ interface Order {
   lat?: number | null;
   lng?: number | null;
   bukti_pembayaran_url: string | null;
+  bukti_diterima_url?: string | null;
   details: OrderDetail[];
 }
 
@@ -212,23 +213,33 @@ function OrderDetailInner() {
   }
 
   const [completing, setCompleting] = useState(false);
-  async function handleCompleteOrder() {
+  async function handleCompleteOrderUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!token || !order) return;
-    if (!confirm("Apakah Anda yakin pesanan sudah diterima dengan baik?")) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!confirm("AI akan memverifikasi kedatangan pesanan berdasarkan data resi dan foto ini. Lanjutkan?")) return;
     setCompleting(true);
+    
+    const formData = new FormData();
+    formData.append("bukti_diterima", file);
+
     try {
-      const res = await fetch(apiUrl(`/orders/${order.id_order}/status`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status_pesanan: "SELESAI" }),
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/ai-verify-arrival`), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
+      
+      const data = await res.json();
       if (res.ok) {
-        setOrder(await res.json());
+        alert("✅ AI mengonfirmasi pesanan telah tiba!\n" + (data.message || ""));
+        setOrder(data.order);
       } else {
-        alert("Gagal mengonfirmasi pesanan.");
+        alert("❌ Verifikasi AI Gagal:\n" + (data.error || "Gagal mengonfirmasi pesanan."));
       }
     } catch { 
-      alert("Terjadi kesalahan.");
+      alert("Terjadi kesalahan jaringan atau server.");
     }
     setCompleting(false);
   }
@@ -498,15 +509,26 @@ function OrderDetailInner() {
               >
                 Ajukan Keluhan
               </Link>
-              <button
-                type="button"
-                onClick={handleCompleteOrder}
-                disabled={completing}
-                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-              >
-                {completing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                {completing ? "Memproses..." : "Pesanan Diterima"}
-              </button>
+              <label className={`flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-colors relative overflow-hidden ${completing ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}>
+                <input type="file" accept="image/*" onChange={handleCompleteOrderUpload} disabled={completing} className="hidden" />
+                {completing ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Verifikasi AI...</>
+                ) : (
+                  <><CheckCircle className="h-4 w-4" /> Pesanan Diterima (Upload Foto)</>
+                )}
+              </label>
+            </div>
+          )}
+
+          {order.status_pesanan === "SELESAI" && order.bukti_diterima_url && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-emerald-600 mb-2">📸 Bukti Pesanan Diterima:</p>
+              <div className="relative h-40 w-full sm:w-64 overflow-hidden rounded-lg border border-emerald-200 bg-white">
+                <Image src={apiUrl(order.bukti_diterima_url)} alt="Bukti Pesanan Diterima" fill className="object-contain" unoptimized />
+              </div>
+              <a href={apiUrl(order.bukti_diterima_url)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-bold text-emerald-600 hover:underline">
+                Lihat Foto Penuh ↗
+              </a>
             </div>
           )}
         </div>

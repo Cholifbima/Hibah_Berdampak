@@ -1825,7 +1825,81 @@ const openai = process.env.OPENAI_API_KEY
 
   : null;
 
+api.post('/orders/:id/ai-verify-arrival', authMiddleware, upload.single('bukti_diterima'), async (req, res) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id_order: parseInt(req.params.id) } });
+    if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+    if (order.id_user !== req.userId && req.userRole !== 'ADMIN') return res.status(403).json({ error: 'Akses ditolak' });
 
+    if (!order.nomor_resi || !order.jenis_pengiriman) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Resi pengiriman belum tersedia' });
+    }
+
+    if (!openai) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(500).json({ error: 'OpenAI belum dikonfigurasi di server' });
+    }
+
+    // Ambil data tracking dari BinderByte
+    let trackingData = null;
+    if (BINDERBYTE_API_KEYS.length > 0 && !BINDERBYTE_API_KEYS[0].includes('ISI_API_KEY')) {
+      const apiKey = BINDERBYTE_API_KEYS[currentBinderByteIndex];
+      currentBinderByteIndex = (currentBinderByteIndex + 1) % BINDERBYTE_API_KEYS.length;
+      const bbRes = await fetch(`https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${order.jenis_pengiriman.toLowerCase()}&awb=${order.nomor_resi}`);
+      trackingData = await bbRes.json();
+    }
+
+    // Gunakan OpenAI Agentic API untuk menentukan validitas dan kedatangan
+    const aiPrompt = `Kamu adalah Agen AI Logistik TopAssist. Analisis data pelacakan resi berikut:\n\n${JSON.stringify(trackingData)}\n\nBerdasarkan data di atas, tentukan:\n1. Apakah resi ini valid (ditemukan di sistem kurir)?\n2. Apakah paket sudah tiba (delivered) di tujuan akhir?\n\nJawab HANYA dalam format JSON valid (tanpa markdown), seperti ini: {"isValid": true, "isDelivered": true, "message": "Paket telah diterima oleh Budi pada 20 Jun 14:00"}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: aiPrompt }],
+      temperature: 0.1
+    });
+
+    const aiResponseText = completion.choices[0].message.content.trim();
+    let aiResult;
+    try {
+      aiResult = JSON.parse(aiResponseText);
+    } catch {
+      // Jika AI gagal return JSON bersih
+      const match = aiResponseText.match(/\{[\s\S]*\}/);
+      aiResult = match ? JSON.parse(match[0]) : { isValid: false, isDelivered: false, message: "Gagal memproses analisis AI" };
+    }
+
+    if (!aiResult.isValid || !aiResult.isDelivered) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: aiResult.message || 'Paket belum tiba atau resi tidak valid berdasarkan deteksi AI.' });
+    }
+
+    // Jika sampai di sini, AI menyatakan paket SUDAH TIBA dan VALID
+    let buktiDiterimaUrl = null;
+    if (req.file) {
+      const fileUrl = `/uploads/${req.file.filename}`;
+      buktiDiterimaUrl = fileUrl;
+    }
+
+    // Update status pesanan ke SELESAI dan simpan bukti (jika ada schema bukti_diterima_url)
+    const updateData = { status_pesanan: 'SELESAI' };
+    if (buktiDiterimaUrl) {
+      // Perhatikan: Ini membutuhkan bukti_diterima_url ada di schema.prisma
+      updateData.bukti_diterima_url = buktiDiterimaUrl;
+    }
+
+    const updated = await prisma.order.update({
+      where: { id_order: order.id_order },
+      data: updateData
+    });
+
+    res.json({ success: true, message: aiResult.message, order: updated });
+  } catch (error) {
+    console.error('AI Verify Arrival Error:', error);
+    if (req.file) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: 'Gagal memverifikasi status kedatangan via AI' });
+  }
+});
 
 api.post('/chat', chatRateLimiter, async (req, res) => {
   try {
