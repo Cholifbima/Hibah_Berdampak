@@ -12,7 +12,10 @@ import Link from "next/link";
 
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
-const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "628157799036";
+let WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "628157799036";
+if (WA_NUMBER.startsWith("0")) WA_NUMBER = "62" + WA_NUMBER.slice(1);
+if (WA_NUMBER.startsWith("+")) WA_NUMBER = WA_NUMBER.slice(1);
+
 const ORDER_COUNTER_KEY = "topassist_order_counter";
 
 function getNextOrderNumber(): string {

@@ -13,7 +13,9 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
-const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "6282243293881";
+let WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "6282243293881";
+if (WA_NUMBER.startsWith("0")) WA_NUMBER = "62" + WA_NUMBER.slice(1);
+if (WA_NUMBER.startsWith("+")) WA_NUMBER = WA_NUMBER.slice(1);
 
 interface OrderDetail {
   id_detail: number;
