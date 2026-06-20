@@ -17,6 +17,10 @@ let WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "6282243293881";
 if (WA_NUMBER.startsWith("0")) WA_NUMBER = "62" + WA_NUMBER.slice(1);
 if (WA_NUMBER.startsWith("+")) WA_NUMBER = WA_NUMBER.slice(1);
 
+let BOT_WA_NUMBER = process.env.NEXT_PUBLIC_BOT_WA_NUMBER || "6285134766339";
+if (BOT_WA_NUMBER.startsWith("0")) BOT_WA_NUMBER = "62" + BOT_WA_NUMBER.slice(1);
+if (BOT_WA_NUMBER.startsWith("+")) BOT_WA_NUMBER = BOT_WA_NUMBER.slice(1);
+
 interface OrderDetail {
   id_detail: number;
   id_product: number;
@@ -297,7 +301,7 @@ function OrderDetailInner() {
             </p>
           </div>
           <a
-            href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo TopAssist! Tolong aktifkan notifikasi otomatis untuk pesanan saya dengan kode: *${order.kode_pesanan}*. Terima kasih!`)}`}
+            href={`https://wa.me/${BOT_WA_NUMBER}?text=${encodeURIComponent(`Halo TopAssist! Tolong aktifkan notifikasi otomatis untuk pesanan saya dengan kode: *${order.kode_pesanan}*. Terima kasih!`)}`}
             target="_blank"
             className="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-green-600 shadow-sm hover:bg-green-50 transition-colors"
           >
