@@ -8,7 +8,7 @@ import { apiUrl, formatRupiah, authFetch } from "@/lib/api";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   ShoppingBag, Search, Plus, Pencil, Trash2, Loader2,
-  ChevronDown, ChevronUp, Save, AlertTriangle, ImagePlus, ImageOff,
+  ChevronDown, ChevronUp, Save, AlertTriangle, ImagePlus, ImageOff, Filter
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
