@@ -5,23 +5,28 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { destination, weight, courier } = body;
     
-    const apiKey = process.env.KOMERCE_API_KEY;
+    // Origin is fixed to Kecamatan Laweyan, Kota Surakarta
+    // From BinderByte Wilayah: ID untuk Laweyan, Surakarta adalah 33.72.01
+    // API Cek Ongkir BinderByte meminta format dist_ID untuk kecamatan.
+    const ORIGIN_DISTRICT_ID = "dist_33.72.01";
+    
+    const apiKey = process.env.BINDERBYTE_API_KEY || "5fdb9fbaea3aa25404763aaa496ecf22ff6b05895fae80d711b5fef06dd58c21";
     if (!apiKey) {
       return NextResponse.json({ error: "API Key belum disetting" }, { status: 500 });
     }
 
-    // Origin ID 445 = Kota Surakarta
-    const response = await fetch("https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost", {
+    // BinderByte Cek Ongkir menggunakan POST application/x-www-form-urlencoded
+    const response = await fetch("https://api.binderbyte.com/v1/cost", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "key": apiKey
       },
       body: new URLSearchParams({
-        origin: "445",
-        destination: destination.toString(),
+        api_key: apiKey,
+        origin: ORIGIN_DISTRICT_ID,
+        destination: `dist_${destination}`, // The destination ID from frontend is the kecamatan ID like 32.73.25
         weight: weight.toString(),
-        courier: courier
+        courier: courier // e.g. jne,pos,sicepat
       }).toString()
     });
 
@@ -29,6 +34,6 @@ export async function POST(req: Request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Cost fetch error:", error);
-    return NextResponse.json({ error: "Gagal menghitung ongkir" }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menghitung ongkir via BinderByte" }, { status: 500 });
   }
 }

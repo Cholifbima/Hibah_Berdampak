@@ -1023,12 +1023,15 @@ api.delete('/products/:id', adminMiddleware, async (req, res) => {
 
 api.post('/orders', authMiddleware, async (req, res) => {
   try {
-    const { nama_penerima, alamat_pengiriman, no_telepon, catatan, lat, lng, items } = req.body;
+    const { nama_penerima, alamat_pengiriman, no_telepon, catatan, lat, lng, items, jenis_pengiriman, ongkos_kirim } = req.body;
 
     if (!nama_penerima || !alamat_pengiriman || !items?.length)
       return res.status(400).json({ error: 'Data pesanan tidak lengkap' });
 
-    const total = items.reduce((s, i) => s + i.subtotal, 0);
+    let total = items.reduce((s, i) => s + i.subtotal, 0);
+    if (ongkos_kirim) {
+      total += Number(ongkos_kirim);
+    }
     const todayDate = new Date();
     const yyyy = todayDate.getFullYear();
     const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
@@ -1059,6 +1062,7 @@ api.post('/orders', authMiddleware, async (req, res) => {
         alamat_pengiriman,
         no_telepon: no_telepon || '',
         catatan: catatan || '',
+        jenis_pengiriman: jenis_pengiriman || null,
         lat: lat || null,
         lng: lng || null,
         details: {

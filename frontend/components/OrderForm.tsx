@@ -73,10 +73,14 @@ export default function OrderForm() {
   const [selectedDist, setSelectedDist] = useState<{id: string; name: string}>({id: "", name: ""});
   const [selectedVill, setSelectedVill] = useState<{id: string; name: string}>({id: "", name: ""});
 
+  const [courierList, setCourierList] = useState<any[]>([]);
+  const [selectedCourier, setSelectedCourier] = useState<any>(null);
+  const [loadingOngkir, setLoadingOngkir] = useState(false);
+
   useEffect(() => {
-    fetch("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+    fetch("/api/ongkir/location?type=province")
       .then(res => res.json())
-      .then(data => setProvinces(data))
+      .then(data => setProvinces(data.value || []))
       .catch(console.error);
   }, []);
 
@@ -85,9 +89,9 @@ export default function OrderForm() {
       setRegencies([]); setSelectedReg({id: "", name: ""});
       return;
     }
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProv.id}.json`)
+    fetch(`/api/ongkir/location?type=city&id=${selectedProv.id}`)
       .then(res => res.json())
-      .then(data => setRegencies(data))
+      .then(data => setRegencies(data.value || []))
       .catch(console.error);
   }, [selectedProv.id]);
 
@@ -96,9 +100,9 @@ export default function OrderForm() {
       setDistricts([]); setSelectedDist({id: "", name: ""});
       return;
     }
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedReg.id}.json`)
+    fetch(`/api/ongkir/location?type=district&id=${selectedReg.id}`)
       .then(res => res.json())
-      .then(data => setDistricts(data))
+      .then(data => setDistricts(data.value || []))
       .catch(console.error);
   }, [selectedReg.id]);
 
@@ -107,9 +111,9 @@ export default function OrderForm() {
       setVillages([]); setSelectedVill({id: "", name: ""});
       return;
     }
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${selectedDist.id}.json`)
+    fetch(`/api/ongkir/location?type=village&id=${selectedDist.id}`)
       .then(res => res.json())
-      .then(data => setVillages(data))
+      .then(data => setVillages(data.value || []))
       .catch(console.error);
 
     // Sync map: when district changes, move map there if village not selected
@@ -140,6 +144,44 @@ export default function OrderForm() {
         }).catch(() => {});
     }
   }, [selectedVill.id]);
+
+  // Fetch Cost when district changes
+  useEffect(() => {
+    if (!selectedDist.id) {
+      setCourierList([]);
+      setSelectedCourier(null);
+      return;
+    }
+    
+    setLoadingOngkir(true);
+    setCourierList([]);
+    setSelectedCourier(null);
+    
+    const weightKg = items.reduce((sum, item) => sum + (item.qty * 1), 0);
+    const totalWeight = Math.max(1, weightKg);
+    
+    fetch('/api/ongkir/cost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        destination: selectedDist.id,
+        weight: totalWeight,
+        courier: 'jne,pos,sicepat,jnt'
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.data && data.data.results) {
+        setCourierList(data.data.results);
+        const firstAvailable = data.data.results.find((c: any) => c.costs && c.costs.length > 0);
+        if (firstAvailable) {
+          setSelectedCourier(firstAvailable.costs[0]);
+        }
+      }
+    })
+    .catch(console.error)
+    .finally(() => setLoadingOngkir(false));
+  }, [selectedDist.id, items]);
 
   const previewOrderNumber = useMemo(() => {
     if (typeof window === "undefined") return "#0001";
@@ -178,8 +220,9 @@ export default function OrderForm() {
 
     if (matchedProv) {
       try {
-        const regRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${matchedProv.id}.json`);
-        const regData = await regRes.json();
+        const regRes = await fetch(`/api/ongkir/location?type=city&id=${matchedProv.id}`);
+        const regDataRaw = await regRes.json();
+        const regData = regDataRaw.value || [];
         setRegencies(regData);
         
         const cityName = addressDetails.city || addressDetails.county || addressDetails.regency || addressDetails.municipality;
@@ -190,8 +233,9 @@ export default function OrderForm() {
         }
 
         if (matchedReg) {
-          const distRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${matchedReg.id}.json`);
-          const distData = await distRes.json();
+          const distRes = await fetch(`/api/ongkir/location?type=district&id=${matchedReg.id}`);
+          const distDataRaw = await distRes.json();
+          const distData = distDataRaw.value || [];
           setDistricts(distData);
 
           const distName = addressDetails.suburb || addressDetails.town || addressDetails.district;
@@ -202,8 +246,9 @@ export default function OrderForm() {
           }
 
           if (matchedDist) {
-            const villRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${matchedDist.id}.json`);
-            const villData = await villRes.json();
+            const villRes = await fetch(`/api/ongkir/location?type=village&id=${matchedDist.id}`);
+            const villDataRaw = await villRes.json();
+            const villData = villDataRaw.value || [];
             setVillages(villData);
 
             const villName = addressDetails.village || addressDetails.neighbourhood || addressDetails.quarter;
@@ -328,6 +373,9 @@ export default function OrderForm() {
     (sum, item) => sum + getEffectivePrice(item) * item.qty,
     0
   );
+  
+  const ongkosKirim = selectedCourier ? parseInt(selectedCourier.price) : 0;
+  const grandTotal = totalAfterDiscount + ongkosKirim;
 
   function buildMessage(orderNum: string): string {
     const sep = "--------------------------------";
@@ -365,7 +413,11 @@ export default function OrderForm() {
     });
 
     lines.push(sep);
-    lines.push(`*TOTAL: ${formatRupiah(totalAfterDiscount)}*`);
+    lines.push(`*Subtotal Produk:* ${formatRupiah(totalAfterDiscount)}`);
+    if (selectedCourier) {
+      lines.push(`*Ongkos Kirim (${selectedCourier.name}):* ${formatRupiah(ongkosKirim)}`);
+    }
+    lines.push(`*TOTAL KESELURUHAN: ${formatRupiah(grandTotal)}*`);
     lines.push("");
     lines.push("Mohon konfirmasi pesanan ini. Terima kasih!");
 
@@ -393,6 +445,8 @@ export default function OrderForm() {
       alamat_pengiriman: fullAlamat,
       no_telepon: telepon,
       catatan,
+      jenis_pengiriman: selectedCourier ? selectedCourier.code : undefined,
+      ongkos_kirim: ongkosKirim,
       lat,
       lng,
       items: items.map((item) => ({
@@ -628,6 +682,45 @@ export default function OrderForm() {
               </FormField>
             </div>
 
+            {/* Pilihan Kurir Pengiriman */}
+            {selectedDist.id && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                <label className="mb-2 block text-[11px] font-semibold text-[#163f73]">
+                  Pilih Layanan Pengiriman
+                </label>
+                {loadingOngkir ? (
+                  <div className="flex items-center gap-2 text-xs text-blue-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Menghitung ongkos kirim...
+                  </div>
+                ) : courierList.length > 0 ? (
+                  <select
+                    className={inputClass}
+                    value={selectedCourier ? `${selectedCourier.code}_${selectedCourier.service}` : ""}
+                    onChange={(e) => {
+                      const [cCode, srv] = e.target.value.split('_');
+                      const courier = courierList.find((c: any) => c.code === cCode);
+                      if (courier && courier.costs) {
+                        const service = courier.costs.find((s: any) => s.service === srv);
+                        if (service) setSelectedCourier(service);
+                      }
+                    }}
+                  >
+                    <option value="" disabled>-- Pilih Pengiriman --</option>
+                    {courierList.map((courier: any) =>
+                      courier.costs?.map((cost: any) => (
+                        <option key={`${courier.code}_${cost.service}`} value={`${courier.code}_${cost.service}`}>
+                          {courier.name} - {cost.service} ({formatRupiah(parseInt(cost.price))}) - {cost.estimated}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                ) : (
+                  <p className="text-xs text-red-500">Tidak ada kurir yang tersedia untuk kecamatan ini.</p>
+                )}
+              </div>
+            )}
+
             {/* Map Picker untuk Alamat */}
             <div className="space-y-3 border-t border-gray-100 pt-4">
               <div className="flex items-center justify-between">
@@ -705,13 +798,25 @@ export default function OrderForm() {
 
           {/* Total */}
           <div className="mx-5 mb-4 rounded-xl border border-gray-100 bg-[#f5f8ff] px-4 py-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-bold text-[#040404]">Total</span>
-              <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase text-gray-400">IDR</p>
-                <p className="text-[15px] font-extrabold text-[#163f73]">
-                  {formatRupiah(totalAfterDiscount)}
-                </p>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between text-xs text-gray-500 font-medium">
+                <span>Subtotal Produk</span>
+                <span>{formatRupiah(totalAfterDiscount)}</span>
+              </div>
+              {selectedCourier && (
+                <div className="flex justify-between text-xs text-gray-500 font-medium">
+                  <span>Ongkos Kirim ({selectedCourier.name || selectedCourier.code})</span>
+                  <span>{formatRupiah(ongkosKirim)}</span>
+                </div>
+              )}
+              <div className="my-1 border-t border-gray-200" />
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-bold text-[#040404]">Total Keseluruhan</span>
+                <div className="text-right">
+                  <p className="text-[15px] font-extrabold text-[#163f73]">
+                    {formatRupiah(grandTotal)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

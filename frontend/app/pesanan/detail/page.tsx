@@ -279,6 +279,27 @@ function OrderDetailInner() {
           </div>
         </div>
 
+        {/* --- BANNER AKTIFKAN NOTIFIKASI WA --- */}
+        <div className="mt-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 p-5 shadow-sm sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+          <div className="flex-1">
+            <h3 className="text-base font-bold flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Aktifkan Notifikasi Otomatis
+            </h3>
+            <p className="mt-1 text-sm text-green-50">
+              Dapatkan *update* resi dan status pesanan langsung di WhatsApp Anda. Klik tombol di samping dan kirim pesannya sekarang agar sistem kami bisa menghubungi Anda!
+            </p>
+          </div>
+          <a
+            href={`https://wa.me/6282243293881?text=${encodeURIComponent(`Halo TopAssist! Tolong aktifkan notifikasi otomatis untuk pesanan saya dengan kode: *${order.kode_pesanan}*. Terima kasih!`)}`}
+            target="_blank"
+            className="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-green-600 shadow-sm hover:bg-green-50 transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" /> Aktifkan via WA
+          </a>
+        </div>
+        {/* ------------------------------------- */}
+
         <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-bold text-[#163f73]">
             <Truck className="h-5 w-5" /> Informasi Pengiriman
