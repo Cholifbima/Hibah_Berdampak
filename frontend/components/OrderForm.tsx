@@ -115,35 +115,21 @@ export default function OrderForm() {
       .then(res => res.json())
       .then(data => setVillages(data.value || []))
       .catch(console.error);
-
-    // Sync map: when district changes, move map there if village not selected
-    if (selectedDist.name && selectedReg.name && selectedProv.name) {
-      const q = `${selectedDist.name}, ${selectedReg.name}, ${selectedProv.name}`;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.length > 0 && !selectedVill.id) {
-            setLat(parseFloat(data[0].lat));
-            setLng(parseFloat(data[0].lon));
-          }
-        }).catch(() => {});
-    }
   }, [selectedDist.id]);
 
-  useEffect(() => {
-    // Sync map: when village changes, move map there
-    if (selectedVill.id && selectedVill.name && selectedDist.name && selectedReg.name && selectedProv.name) {
-      const q = `${selectedVill.name}, ${selectedDist.name}, ${selectedReg.name}, ${selectedProv.name}`;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.length > 0) {
-            setLat(parseFloat(data[0].lat));
-            setLng(parseFloat(data[0].lon));
-          }
-        }).catch(() => {});
-    }
-  }, [selectedVill.id]);
+  function moveMapToLocation(distName: string, regName: string, provName: string, villName: string = "") {
+    const parts = [villName, distName, regName, provName].filter(Boolean);
+    if (parts.length < 3) return;
+    const q = parts.join(", ");
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          setLat(parseFloat(data[0].lat));
+          setLng(parseFloat(data[0].lon));
+        }
+      }).catch(() => {});
+  }
 
   // Fetch Cost when district changes
   useEffect(() => {
@@ -208,12 +194,25 @@ export default function OrderForm() {
     if (!addressDetails) return;
     console.log("[Sync] Nominatim address:", addressDetails);
     
+    // Ensure we have provinces data (prevents stale closure issues)
+    let currentProvinces = provinces;
+    if (!currentProvinces || currentProvinces.length === 0) {
+      try {
+        const res = await fetch("/api/ongkir/location?type=province");
+        const data = await res.json();
+        currentProvinces = data.value || [];
+        setProvinces(currentProvinces);
+      } catch (e) {
+        console.error("Failed to fetch provinces for sync", e);
+      }
+    }
+
     // Find matching province - BinderByte uses UPPERCASE names like "JAWA TENGAH"
     let matchedProv = null;
-    const stateName = addressDetails.state || addressDetails.province || "";
+    const stateName = addressDetails.state || addressDetails.province || addressDetails.region || "";
     if (stateName) {
       const stateL = stateName.toLowerCase().replace(/\b(provinsi|province)\b/gi, "").trim();
-      matchedProv = provinces.find(p => {
+      matchedProv = currentProvinces.find(p => {
         const pL = p.name.toLowerCase();
         return pL === stateL || stateL.includes(pL) || pL.includes(stateL);
       });
@@ -235,7 +234,7 @@ export default function OrderForm() {
       const regData = regDataRaw.value || [];
       setRegencies(regData);
       
-      const cityName = addressDetails.city || addressDetails.county || addressDetails.regency || addressDetails.municipality || addressDetails.city_district || "";
+      const cityName = addressDetails.city || addressDetails.county || addressDetails.regency || addressDetails.municipality || addressDetails.city_district || addressDetails.state_district || "";
       let matchedReg = null;
       if (cityName) {
         const cityL = cityName.toLowerCase();
@@ -261,11 +260,15 @@ export default function OrderForm() {
 
       // Nominatim bisa mengembalikan kecamatan di berbagai field
       const distCandidates = [
-        addressDetails.suburb,
-        addressDetails.district,
-        addressDetails.town,
         addressDetails.city_district,
+        addressDetails.district,
+        addressDetails.suburb,
+        addressDetails.borough,
+        addressDetails.town,
+        addressDetails.municipality,
         addressDetails.neighbourhood,
+        addressDetails.village,
+        addressDetails.city,
       ].filter(Boolean);
 
       let matchedDist = null;
@@ -333,7 +336,7 @@ export default function OrderForm() {
         setLat(position.coords.latitude);
         setLng(position.coords.longitude);
         // Reverse geocode to get address - force Indonesian language
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1&accept-language=id`)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1&accept-language=id&email=topassist@example.com`)
           .then(res => res.json())
           .then(data => {
             if (data && data.display_name) {
@@ -713,7 +716,10 @@ export default function OrderForm() {
                   value={selectedDist.id}
                   onChange={(e) => {
                     const sel = districts.find(d => d.id === e.target.value);
-                    if (sel) setSelectedDist({id: sel.id, name: sel.name});
+                    if (sel) {
+                      setSelectedDist({id: sel.id, name: sel.name});
+                      moveMapToLocation(sel.name, selectedReg.name, selectedProv.name);
+                    }
                     else setSelectedDist({id: "", name: ""});
                   }}
                   className={inputClass}
@@ -729,7 +735,10 @@ export default function OrderForm() {
                   value={selectedVill.id}
                   onChange={(e) => {
                     const sel = villages.find(v => v.id === e.target.value);
-                    if (sel) setSelectedVill({id: sel.id, name: sel.name});
+                    if (sel) {
+                      setSelectedVill({id: sel.id, name: sel.name});
+                      moveMapToLocation(selectedDist.name, selectedReg.name, selectedProv.name, sel.name);
+                    }
                     else setSelectedVill({id: "", name: ""});
                   }}
                   className={inputClass}

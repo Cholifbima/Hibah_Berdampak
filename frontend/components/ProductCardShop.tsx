@@ -39,7 +39,6 @@ export default function ProductCardShop({ product }: ProductCardShopProps) {
             fill
             sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw"
             className="object-contain p-3 transition-transform duration-300 group-hover:scale-105"
-            quality={90}
           />
         ) : (
           <div className="flex h-full items-center justify-center">

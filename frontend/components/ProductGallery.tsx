@@ -29,7 +29,6 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 500px"
           className="object-contain p-4 sm:p-6"
-          quality={95}
           priority
         />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -25,16 +25,29 @@ interface MapPickerProps {
 
 function DraggableMarker({ lat, lng, onDragEnd }: { lat: number; lng: number; onDragEnd: (lat: number, lng: number) => void }) {
   const [position, setPosition] = useState(L.latLng(lat, lng));
-  const ref = useCallback((marker: L.Marker | null) => {
-    if (marker) {
-      marker.on("dragend", () => {
+  
+  useEffect(() => {
+    setPosition(L.latLng(lat, lng));
+  }, [lat, lng]);
+
+  const onDragEndRef = useRef(onDragEnd);
+  useEffect(() => {
+    onDragEndRef.current = onDragEnd;
+  }, [onDragEnd]);
+
+  const eventHandlers = useMemo(
+    () => ({
+      dragend(e: any) {
+        const marker = e.target;
         const pos = marker.getLatLng();
         setPosition(pos);
-        onDragEnd(pos.lat, pos.lng);
-      });
-    }
-  }, [onDragEnd]);
-  return <Marker draggable position={position} ref={ref} />;
+        onDragEndRef.current(pos.lat, pos.lng);
+      },
+    }),
+    [],
+  );
+
+  return <Marker draggable position={position} eventHandlers={eventHandlers} />;
 }
 
 function MapController({ lat, lng }: { lat: number; lng: number }) {
@@ -87,7 +100,7 @@ export default function MapPicker({ lat, lng, onChange }: MapPickerProps) {
     setReverseLoading(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id&email=topassist@example.com`
       );
       const data = await res.json();
       if (data && data.display_name) {
@@ -95,8 +108,13 @@ export default function MapPicker({ lat, lng, onChange }: MapPickerProps) {
         onChange(lat, lng, data.display_name, data.address);
         return data.display_name;
       }
-    } catch { /* ignore */ }
-    setReverseLoading(false);
+    } catch (err) {
+      console.error("Reverse geocode error:", err);
+    } finally {
+      setReverseLoading(false);
+    }
+    // Fallback if nominatim fails, at least update lat/lng
+    onChange(lat, lng, "", null);
     return null;
   }
 

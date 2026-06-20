@@ -73,7 +73,7 @@ export default function AIConsultantSection() {
                   alt="TopAssist AI Chatbot"
                   fill
                   className="object-contain drop-shadow-2xl"
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 640px) 280px, (max-width: 1024px) 384px, 50vw"
                   priority
                 />
               </div>

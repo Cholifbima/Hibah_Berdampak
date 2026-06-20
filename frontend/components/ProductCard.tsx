@@ -67,7 +67,6 @@ export default function ProductCard({ product, isBestSeller = false }: ProductCa
             sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 280px"
             className="object-contain transition-transform duration-500 group-hover:scale-105"
             style={{ padding: "10%" }}
-            quality={90}
           />
         ) : (
           <div className="flex h-full items-center justify-center">
