@@ -1163,7 +1163,7 @@ api.post('/orders/:id/upload-bukti', authMiddleware, upload.single('bukti'), asy
       fetch(`${waBotUrl}/api/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secretKey: waBotSecret, number: ownerNumber, message })
+        body: JSON.stringify({ secretKey: waBotSecret, number: ownerNumber, message, isOwner: true })
       }).catch(e => console.error("WA Bot Error:", e.message));
     } catch (waErr) {
       console.error("Gagal mengirim notif WA ke Owner", waErr);
