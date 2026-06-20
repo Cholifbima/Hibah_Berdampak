@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     // API Cek Ongkir BinderByte meminta format dist_ID untuk kecamatan.
     const ORIGIN_DISTRICT_ID = "dist_33.72.01";
     
-    const apiKey = process.env.BINDERBYTE_API_KEY || "5fdb9fbaea3aa25404763aaa496ecf22ff6b05895fae80d711b5fef06dd58c21";
+    const apiKey = process.env.BINDERBYTE_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "API Key belum disetting" }, { status: 500 });
     }

@@ -5,7 +5,7 @@ export async function GET(req: Request) {
   const type = searchParams.get('type') || 'province';
   const id = searchParams.get('id');
 
-  const apiKey = process.env.BINDERBYTE_API_KEY || "5fdb9fbaea3aa25404763aaa496ecf22ff6b05895fae80d711b5fef06dd58c21";
+  const apiKey = process.env.BINDERBYTE_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json({ error: "API Key BinderByte belum disetting di .env.local" }, { status: 500 });
