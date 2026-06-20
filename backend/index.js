@@ -1315,14 +1315,30 @@ api.patch('/orders/:id/status', authMiddleware, async (req, res) => {
 
 
     const data = {};
-
     if (status_pesanan) data.status_pesanan = status_pesanan;
-
     if (jenis_pengiriman !== undefined) data.jenis_pengiriman = jenis_pengiriman;
-
     if (nomor_resi !== undefined) data.nomor_resi = nomor_resi;
 
-
+    // --- Verifikasi Resi Valid Sebelum Menandai DIKIRIM ---
+    if (status_pesanan === 'DIKIRIM' && data.nomor_resi && data.jenis_pengiriman) {
+      if (BINDERBYTE_API_KEYS.length > 0 && !BINDERBYTE_API_KEYS[0].includes('ISI_API_KEY')) {
+        try {
+          const apiKey = BINDERBYTE_API_KEYS[currentBinderByteIndex];
+          currentBinderByteIndex = (currentBinderByteIndex + 1) % BINDERBYTE_API_KEYS.length;
+          
+          const resiCheck = await fetch(`https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${data.jenis_pengiriman.toLowerCase()}&awb=${data.nomor_resi}`);
+          const resiData = await resiCheck.json();
+          
+          if (resiData.status !== 200) {
+            return res.status(400).json({ error: `Resi tidak valid atau belum terdaftar di sistem kurir (${data.jenis_pengiriman.toUpperCase()}). Harap pastikan nomor resi benar.` });
+          }
+        } catch (err) {
+          console.error("Gagal memverifikasi resi:", err);
+          // Jika BinderByte down, kita biarkan lolos agar operasional toko tidak terhenti total.
+        }
+      }
+    }
+    // ----------------------------------------------------
 
     const updated = await prisma.order.update({
       where: { id_order: parseInt(req.params.id) },
@@ -1854,7 +1870,7 @@ api.get('/orders/:id/ai-check-arrival', authMiddleware, async (req, res) => {
     }
 
     // Gunakan OpenAI Agentic API untuk menentukan validitas dan kedatangan
-    const aiPrompt = `Kamu adalah Agen AI Logistik TopAssist. Analisis data pelacakan resi berikut:\n\n${JSON.stringify(trackingData)}\n\nBerdasarkan data di atas, tentukan:\n1. Apakah resi ini valid (ditemukan di sistem kurir)?\n2. Apakah paket sudah tiba (delivered) di tujuan akhir?\n\nJawab HANYA dalam format JSON valid (tanpa markdown), seperti ini: {"isValid": true, "isDelivered": true, "message": "Paket telah diterima oleh Budi pada 20 Jun 14:00"}`;
+    const aiPrompt = `Kamu adalah Agen AI Logistik TopAssist yang SANGAT KETAT. Analisis data pelacakan resi berikut:\n\n${JSON.stringify(trackingData)}\n\nBerdasarkan data di atas, tentukan:\n1. Apakah resi ini valid?\n2. Apakah paket SUDAH TIBA? PERINGATAN KERAS: Paket HANYA dianggap sudah tiba jika ada kata "DELIVERED" atau "BERHASIL DIKIRIM". Jika statusnya "ON PROCCESS", "MANIFESTED", atau kata lain yang mengindikasikan perjalanan, "isDelivered" WAJIB bernilai false!\n\nJawab HANYA dalam format JSON valid (tanpa markdown), seperti ini: {"isValid": true, "isDelivered": false, "message": "Paket masih dalam proses perjalanan"}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
