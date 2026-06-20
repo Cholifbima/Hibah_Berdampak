@@ -1825,19 +1825,17 @@ const openai = process.env.OPENAI_API_KEY
 
   : null;
 
-api.post('/orders/:id/ai-verify-arrival', authMiddleware, upload.single('bukti_diterima'), async (req, res) => {
+api.get('/orders/:id/ai-check-arrival', authMiddleware, async (req, res) => {
   try {
     const order = await prisma.order.findUnique({ where: { id_order: parseInt(req.params.id) } });
     if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
     if (order.id_user !== req.userId && req.userRole !== 'ADMIN') return res.status(403).json({ error: 'Akses ditolak' });
 
     if (!order.nomor_resi || !order.jenis_pengiriman) {
-      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Resi pengiriman belum tersedia' });
     }
 
     if (!openai) {
-      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(500).json({ error: 'OpenAI belum dikonfigurasi di server' });
     }
 
@@ -1848,6 +1846,11 @@ api.post('/orders/:id/ai-verify-arrival', authMiddleware, upload.single('bukti_d
       currentBinderByteIndex = (currentBinderByteIndex + 1) % BINDERBYTE_API_KEYS.length;
       const bbRes = await fetch(`https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${order.jenis_pengiriman.toLowerCase()}&awb=${order.nomor_resi}`);
       trackingData = await bbRes.json();
+    }
+
+    // Jika BinderByte jelas-jelas bilang DELIVERED, langsung return true tanpa membuang token OpenAI
+    if (trackingData && trackingData.data && trackingData.data.summary && trackingData.data.summary.status === 'DELIVERED') {
+      return res.json({ isDelivered: true, message: "Tracking API mengonfirmasi status DELIVERED." });
     }
 
     // Gunakan OpenAI Agentic API untuk menentukan validitas dan kedatangan
@@ -1864,27 +1867,35 @@ api.post('/orders/:id/ai-verify-arrival', authMiddleware, upload.single('bukti_d
     try {
       aiResult = JSON.parse(aiResponseText);
     } catch {
-      // Jika AI gagal return JSON bersih
       const match = aiResponseText.match(/\{[\s\S]*\}/);
       aiResult = match ? JSON.parse(match[0]) : { isValid: false, isDelivered: false, message: "Gagal memproses analisis AI" };
     }
 
     if (!aiResult.isValid || !aiResult.isDelivered) {
-      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: aiResult.message || 'Paket belum tiba atau resi tidak valid berdasarkan deteksi AI.' });
     }
 
-    // Jika sampai di sini, AI menyatakan paket SUDAH TIBA dan VALID
+    res.json({ isDelivered: true, message: aiResult.message });
+  } catch (error) {
+    console.error('AI Verify Arrival Error:', error);
+    res.status(500).json({ error: 'Gagal memverifikasi status kedatangan via AI' });
+  }
+});
+
+api.post('/orders/:id/complete-order', authMiddleware, upload.single('bukti_diterima'), async (req, res) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id_order: parseInt(req.params.id) } });
+    if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+    if (order.id_user !== req.userId && req.userRole !== 'ADMIN') return res.status(403).json({ error: 'Akses ditolak' });
+
     let buktiDiterimaUrl = null;
     if (req.file) {
       const fileUrl = `/uploads/${req.file.filename}`;
       buktiDiterimaUrl = fileUrl;
     }
 
-    // Update status pesanan ke SELESAI dan simpan bukti (jika ada schema bukti_diterima_url)
     const updateData = { status_pesanan: 'SELESAI' };
     if (buktiDiterimaUrl) {
-      // Perhatikan: Ini membutuhkan bukti_diterima_url ada di schema.prisma
       updateData.bukti_diterima_url = buktiDiterimaUrl;
     }
 
@@ -1893,11 +1904,11 @@ api.post('/orders/:id/ai-verify-arrival', authMiddleware, upload.single('bukti_d
       data: updateData
     });
 
-    res.json({ success: true, message: aiResult.message, order: updated });
+    res.json({ success: true, order: updated });
   } catch (error) {
-    console.error('AI Verify Arrival Error:', error);
+    console.error('Complete order error:', error);
     if (req.file) fs.unlinkSync(req.file.path);
-    res.status(500).json({ error: 'Gagal memverifikasi status kedatangan via AI' });
+    res.status(500).json({ error: 'Gagal menyelesaikan pesanan' });
   }
 });
 

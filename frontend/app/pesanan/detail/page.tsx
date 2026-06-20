@@ -155,6 +155,30 @@ function OrderDetailInner() {
 
   const [canceling, setCanceling] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [aiVerified, setAiVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  async function handleCheckAI() {
+    if (!token || !order) return;
+    setVerifying(true);
+    try {
+      // Kita panggil track endpoint yang kita buat khusus AI (atau gunakan yang sudah ada, tapi tanpa file upload)
+      // Buat endpoint GET /orders/:id/ai-check-arrival di backend
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/ai-check-arrival`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.isDelivered) {
+        setAiVerified(true);
+        alert("✅ AI mengonfirmasi paket telah tiba! " + (data.message || ""));
+      } else {
+        alert("❌ Verifikasi AI: " + (data.error || "Paket belum tiba menurut pelacakan resi."));
+      }
+    } catch {
+      alert("Terjadi kesalahan saat memverifikasi dengan AI.");
+    }
+    setVerifying(false);
+  }
 
   async function handleUploadBukti(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -225,7 +249,7 @@ function OrderDetailInner() {
     formData.append("bukti_diterima", file);
 
     try {
-      const res = await fetch(apiUrl(`/orders/${order.id_order}/ai-verify-arrival`), {
+      const res = await fetch(apiUrl(`/orders/${order.id_order}/complete-order`), {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -233,10 +257,10 @@ function OrderDetailInner() {
       
       const data = await res.json();
       if (res.ok) {
-        alert("✅ AI mengonfirmasi pesanan telah tiba!\n" + (data.message || ""));
+        alert("✅ Pesanan berhasil diselesaikan!");
         setOrder(data.order);
       } else {
-        alert("❌ Verifikasi AI Gagal:\n" + (data.error || "Gagal mengonfirmasi pesanan."));
+        alert("❌ Gagal menyelesaikan pesanan:\n" + (data.error || ""));
       }
     } catch { 
       alert("Terjadi kesalahan jaringan atau server.");
@@ -509,14 +533,26 @@ function OrderDetailInner() {
               >
                 Ajukan Keluhan
               </Link>
-              <label className={`flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-colors relative overflow-hidden ${completing ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}>
-                <input type="file" accept="image/*" onChange={handleCompleteOrderUpload} disabled={completing} className="hidden" />
-                {completing ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Verifikasi AI...</>
-                ) : (
-                  <><CheckCircle className="h-4 w-4" /> Pesanan Diterima (Upload Foto)</>
-                )}
-              </label>
+              {!aiVerified ? (
+                <button
+                  type="button"
+                  onClick={handleCheckAI}
+                  disabled={verifying}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                  {verifying ? "Mengecek Resi dengan AI..." : "Pesanan Diterima"}
+                </button>
+              ) : (
+                <label className={`flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-colors relative overflow-hidden ${completing ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}>
+                  <input type="file" accept="image/*" onChange={handleCompleteOrderUpload} disabled={completing} className="hidden" />
+                  {completing ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Mengupload...</>
+                  ) : (
+                    <><Upload className="h-4 w-4" /> Upload Foto Bukti Diterima</>
+                  )}
+                </label>
+              )}
             </div>
           )}
 
