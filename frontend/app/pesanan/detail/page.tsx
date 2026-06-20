@@ -39,6 +39,8 @@ interface Order {
   nomor_resi: string | null;
   tanggal_pesanan: string;
   updated_at: string;
+  lat?: number | null;
+  lng?: number | null;
   bukti_pembayaran_url: string | null;
   details: OrderDetail[];
 }
@@ -449,7 +451,7 @@ function OrderDetailInner() {
               {order.status_pesanan === "PENDING" && (
                 <div className="mt-4 flex flex-col sm:flex-row gap-3">
                   <a
-                    href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo Admin, saya ingin meminta nomor rekening untuk pembayaran pesanan ${order.kode_pesanan}.`)}`}
+                    href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo Admin, saya ingin meminta nomor rekening untuk pembayaran pesanan ${order.kode_pesanan}.\n\nAlamat: ${order.alamat_pengiriman}${order.lat && order.lng ? `\n\nGoogle Maps: https://www.google.com/maps?q=${order.lat},${order.lng}` : ''}`)}`}
                     target="_blank"
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#163f73] shadow-sm hover:bg-gray-50 border border-blue-200 transition-colors"
                   >
