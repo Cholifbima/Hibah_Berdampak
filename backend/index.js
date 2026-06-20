@@ -2071,6 +2071,102 @@ api.use((err, req, res, next) => {
 });
 
 
+// ==========================================
+// BinderByte Ongkir - Wilayah & Cost API
+// ==========================================
+
+function getBinderByteKey() {
+  if (BINDERBYTE_API_KEYS.length > 0 && !BINDERBYTE_API_KEYS[0].includes('ISI_API_KEY')) {
+    const key = BINDERBYTE_API_KEYS[currentBinderByteIndex];
+    currentBinderByteIndex = (currentBinderByteIndex + 1) % BINDERBYTE_API_KEYS.length;
+    return key;
+  }
+  return null;
+}
+
+// GET /api/ongkir/location?type=province|city|district|village&id=xxx
+api.get('/ongkir/location', async (req, res) => {
+  try {
+    const apiKey = getBinderByteKey();
+    if (!apiKey) return res.status(500).json({ error: 'API Key BinderByte belum dikonfigurasi' });
+
+    const { type, id } = req.query;
+    let url = `https://api.binderbyte.com/wilayah/provinsi?api_key=${apiKey}`;
+
+    if (type === 'city' && id) {
+      url = `https://api.binderbyte.com/wilayah/kabupaten?api_key=${apiKey}&id_provinsi=${id}`;
+    } else if (type === 'district' && id) {
+      url = `https://api.binderbyte.com/wilayah/kecamatan?api_key=${apiKey}&id_kabupaten=${id}`;
+    } else if (type === 'village' && id) {
+      url = `https://api.binderbyte.com/wilayah/kelurahan?api_key=${apiKey}&id_kecamatan=${id}`;
+    }
+
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Ongkir location error:', error);
+    res.status(500).json({ error: 'Gagal mengambil data lokasi' });
+  }
+});
+
+// POST /api/ongkir/cost
+api.post('/ongkir/cost', async (req, res) => {
+  try {
+    const apiKey = getBinderByteKey();
+    if (!apiKey) return res.status(500).json({ error: 'API Key BinderByte belum dikonfigurasi' });
+
+    const { destination, weight, courier } = req.body;
+    const ORIGIN_DISTRICT_ID = 'dist_33.72.01'; // Laweyan, Surakarta
+    const destId = `dist_${destination}`;
+    const weightStr = String(weight);
+
+    const ALL_COURIERS = ['jne','pos','tiki','sicepat','anteraja','lion','ninja','sap','ide','jnt','wahana','spx'];
+    const courierList = courier ? courier.split(',').map(c => c.trim()) : ALL_COURIERS;
+
+    // Kirim per kurir secara paralel
+    const promises = courierList.map(async (c) => {
+      try {
+        const resp = await fetch('https://api.binderbyte.com/v1/cost', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            api_key: apiKey,
+            origin: ORIGIN_DISTRICT_ID,
+            destination: destId,
+            weight: weightStr,
+            courier: c
+          }).toString()
+        });
+        const text = await resp.text();
+        if (!text || text.trim() === '') return null;
+        const data = JSON.parse(text);
+        if (data.code === '200' && data.data?.results) return data.data.results;
+        return null;
+      } catch { return null; }
+    });
+
+    const results = await Promise.all(promises);
+    const allResults = [];
+    for (const r of results) {
+      if (r && Array.isArray(r)) allResults.push(...r);
+    }
+
+    res.json({
+      code: '200',
+      message: 'Successfully calculated cost',
+      data: {
+        origin: { id: ORIGIN_DISTRICT_ID },
+        destination: { id: destId },
+        weight: weightStr,
+        results: allResults
+      }
+    });
+  } catch (error) {
+    console.error('Ongkir cost error:', error);
+    res.status(500).json({ error: 'Gagal menghitung ongkir' });
+  }
+});
 
 // Health check for Passenger
 app.get('/', (req, res) => {

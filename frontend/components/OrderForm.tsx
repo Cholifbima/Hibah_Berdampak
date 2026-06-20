@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { useCart, getEffectivePrice } from "@/lib/cart-context";
 import { formatRupiah, apiUrl, authFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin, Truck, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -166,7 +166,7 @@ export default function OrderForm() {
       body: JSON.stringify({
         destination: selectedDist.id,
         weight: totalWeight,
-        courier: 'jne,pos,sicepat,jnt'
+        courier: 'jne,pos,tiki,sicepat,anteraja,lion,ninja,sap,ide,jnt,wahana,spx'
       })
     })
     .then(r => r.json())
@@ -206,59 +206,118 @@ export default function OrderForm() {
 
   async function syncAddressWithDropdowns(addressDetails: any) {
     if (!addressDetails) return;
+    console.log("[Sync] Nominatim address:", addressDetails);
     
-    // Find matching province
+    // Find matching province - BinderByte uses UPPERCASE names like "JAWA TENGAH"
     let matchedProv = null;
-    const stateName = addressDetails.state || addressDetails.province;
+    const stateName = addressDetails.state || addressDetails.province || "";
     if (stateName) {
-      matchedProv = provinces.find(p => p.name.toLowerCase() === stateName.toLowerCase() || stateName.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(stateName.toLowerCase()));
+      const stateL = stateName.toLowerCase().replace(/\b(provinsi|province)\b/gi, "").trim();
+      matchedProv = provinces.find(p => {
+        const pL = p.name.toLowerCase();
+        return pL === stateL || stateL.includes(pL) || pL.includes(stateL);
+      });
       if (matchedProv) {
+        console.log("[Sync] Matched province:", matchedProv.name);
         setSelectedProv({id: matchedProv.id, name: matchedProv.name});
-        setProvinsi(""); // Bersihkan fallback provinsi
+        setProvinsi("");
+      } else {
+        console.log("[Sync] No province match for:", stateName);
       }
     }
 
-    if (matchedProv) {
-      try {
-        const regRes = await fetch(`/api/ongkir/location?type=city&id=${matchedProv.id}`);
-        const regDataRaw = await regRes.json();
-        const regData = regDataRaw.value || [];
-        setRegencies(regData);
-        
-        const cityName = addressDetails.city || addressDetails.county || addressDetails.regency || addressDetails.municipality;
-        let matchedReg = null;
-        if (cityName) {
-          matchedReg = regData.find((r: any) => cityName.toLowerCase().includes(r.name.toLowerCase()) || r.name.toLowerCase().includes(cityName.toLowerCase()));
-          if (matchedReg) setSelectedReg({id: matchedReg.id, name: matchedReg.name});
-        }
+    if (!matchedProv) return;
 
+    try {
+      // Fetch & match Kota/Kabupaten
+      const regRes = await fetch(`/api/ongkir/location?type=city&id=${matchedProv.id}`);
+      const regDataRaw = await regRes.json();
+      const regData = regDataRaw.value || [];
+      setRegencies(regData);
+      
+      const cityName = addressDetails.city || addressDetails.county || addressDetails.regency || addressDetails.municipality || addressDetails.city_district || "";
+      let matchedReg = null;
+      if (cityName) {
+        const cityL = cityName.toLowerCase();
+        matchedReg = regData.find((r: any) => {
+          const rL = r.name.toLowerCase().replace(/^(kota|kabupaten)\s+/, "");
+          return cityL.includes(rL) || rL.includes(cityL) || cityL === rL;
+        });
         if (matchedReg) {
-          const distRes = await fetch(`/api/ongkir/location?type=district&id=${matchedReg.id}`);
-          const distDataRaw = await distRes.json();
-          const distData = distDataRaw.value || [];
-          setDistricts(distData);
-
-          const distName = addressDetails.suburb || addressDetails.town || addressDetails.district;
-          let matchedDist = null;
-          if (distName) {
-            matchedDist = distData.find((d: any) => distName.toLowerCase().includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(distName.toLowerCase()));
-            if (matchedDist) setSelectedDist({id: matchedDist.id, name: matchedDist.name});
-          }
-
-          if (matchedDist) {
-            const villRes = await fetch(`/api/ongkir/location?type=village&id=${matchedDist.id}`);
-            const villDataRaw = await villRes.json();
-            const villData = villDataRaw.value || [];
-            setVillages(villData);
-
-            const villName = addressDetails.village || addressDetails.neighbourhood || addressDetails.quarter;
-            if (villName) {
-              const matchedVill = villData.find((v: any) => villName.toLowerCase().includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(villName.toLowerCase()));
-              if (matchedVill) setSelectedVill({id: matchedVill.id, name: matchedVill.name});
-            }
-          }
+          console.log("[Sync] Matched city:", matchedReg.name);
+          setSelectedReg({id: matchedReg.id, name: matchedReg.name});
+        } else {
+          console.log("[Sync] No city match for:", cityName, "in", regData.length, "options");
         }
-      } catch (e) {}
+      }
+
+      if (!matchedReg) return;
+
+      // Fetch & match Kecamatan
+      const distRes = await fetch(`/api/ongkir/location?type=district&id=${matchedReg.id}`);
+      const distDataRaw = await distRes.json();
+      const distData = distDataRaw.value || [];
+      setDistricts(distData);
+
+      // Nominatim bisa mengembalikan kecamatan di berbagai field
+      const distCandidates = [
+        addressDetails.suburb,
+        addressDetails.district,
+        addressDetails.town,
+        addressDetails.city_district,
+        addressDetails.neighbourhood,
+      ].filter(Boolean);
+
+      let matchedDist = null;
+      for (const candidate of distCandidates) {
+        const candL = candidate.toLowerCase();
+        matchedDist = distData.find((d: any) => {
+          const dL = d.name.toLowerCase();
+          return candL === dL || candL.includes(dL) || dL.includes(candL);
+        });
+        if (matchedDist) break;
+      }
+
+      if (matchedDist) {
+        console.log("[Sync] Matched district:", matchedDist.name);
+        setSelectedDist({id: matchedDist.id, name: matchedDist.name});
+      } else {
+        console.log("[Sync] No district match. Candidates:", distCandidates, "Options:", distData.map((d:any) => d.name));
+        return;
+      }
+
+      // Fetch & match Kelurahan
+      const villRes = await fetch(`/api/ongkir/location?type=village&id=${matchedDist.id}`);
+      const villDataRaw = await villRes.json();
+      const villData = villDataRaw.value || [];
+      setVillages(villData);
+
+      const villCandidates = [
+        addressDetails.village,
+        addressDetails.suburb,
+        addressDetails.neighbourhood,
+        addressDetails.quarter,
+        addressDetails.hamlet,
+      ].filter(Boolean);
+
+      let matchedVill = null;
+      for (const candidate of villCandidates) {
+        const candL = candidate.toLowerCase();
+        matchedVill = villData.find((v: any) => {
+          const vL = v.name.toLowerCase();
+          return candL === vL || candL.includes(vL) || vL.includes(candL);
+        });
+        if (matchedVill) break;
+      }
+
+      if (matchedVill) {
+        console.log("[Sync] Matched village:", matchedVill.name);
+        setSelectedVill({id: matchedVill.id, name: matchedVill.name});
+      } else {
+        console.log("[Sync] No village match. Candidates:", villCandidates);
+      }
+    } catch (e) {
+      console.error("[Sync] Error syncing address:", e);
     }
   }
 
@@ -273,8 +332,8 @@ export default function OrderForm() {
       (position) => {
         setLat(position.coords.latitude);
         setLng(position.coords.longitude);
-        // Reverse geocode to get address
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1`)
+        // Reverse geocode to get address - force Indonesian language
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1&accept-language=id`)
           .then(res => res.json())
           .then(data => {
             if (data && data.display_name) {
@@ -684,39 +743,59 @@ export default function OrderForm() {
 
             {/* Pilihan Kurir Pengiriman */}
             {selectedDist.id && (
-              <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                <label className="mb-2 block text-[11px] font-semibold text-[#163f73]">
+              <div className="space-y-3 border-t border-gray-100 pt-4">
+                <label className="flex items-center gap-2 text-[11px] font-semibold text-[#163f73]">
+                  <Truck className="h-3.5 w-3.5" />
                   Pilih Layanan Pengiriman
                 </label>
                 {loadingOngkir ? (
-                  <div className="flex items-center gap-2 text-xs text-blue-600">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Menghitung ongkos kirim...
+                  <div className="flex flex-col items-center gap-2 py-6 text-xs text-blue-600">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Menghitung ongkos kirim dari semua kurir...</span>
                   </div>
                 ) : courierList.length > 0 ? (
-                  <select
-                    className={inputClass}
-                    value={selectedCourier ? `${selectedCourier.code}_${selectedCourier.service}` : ""}
-                    onChange={(e) => {
-                      const [cCode, srv] = e.target.value.split('_');
-                      const courier = courierList.find((c: any) => c.code === cCode);
-                      if (courier && courier.costs) {
-                        const service = courier.costs.find((s: any) => s.service === srv);
-                        if (service) setSelectedCourier(service);
-                      }
-                    }}
-                  >
-                    <option value="" disabled>-- Pilih Pengiriman --</option>
+                  <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
                     {courierList.map((courier: any) =>
-                      courier.costs?.map((cost: any) => (
-                        <option key={`${courier.code}_${cost.service}`} value={`${courier.code}_${cost.service}`}>
-                          {courier.name} - {cost.service} ({formatRupiah(parseInt(cost.price))}) - {cost.estimated}
-                        </option>
-                      ))
+                      courier.costs?.map((cost: any) => {
+                        const isSelected = selectedCourier?.code === cost.code && selectedCourier?.service === cost.service;
+                        return (
+                          <button
+                            key={`${courier.code}_${cost.service}`}
+                            type="button"
+                            onClick={() => setSelectedCourier(cost)}
+                            className={`relative flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${
+                              isSelected
+                                ? 'border-[#163f73] bg-[#163f73]/5 shadow-md'
+                                : 'border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/30'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#163f73] text-white">
+                                <Check className="h-3 w-3" />
+                              </div>
+                            )}
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-blue-50">
+                              <Truck className={`h-4 w-4 ${isSelected ? 'text-[#163f73]' : 'text-blue-400'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[12px] font-bold text-gray-800 truncate">{courier.name}</span>
+                                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500 uppercase">{cost.service}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-400 mt-0.5">{cost.type} &bull; Est. {cost.estimated}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className={`text-[13px] font-extrabold ${isSelected ? 'text-[#163f73]' : 'text-gray-700'}`}>
+                                {formatRupiah(parseInt(cost.price))}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })
                     )}
-                  </select>
+                  </div>
                 ) : (
-                  <p className="text-xs text-red-500">Tidak ada kurir yang tersedia untuk kecamatan ini.</p>
+                  <p className="text-xs text-gray-400 py-3 text-center">Pilih kecamatan terlebih dahulu untuk melihat ongkos kirim.</p>
                 )}
               </div>
             )}
