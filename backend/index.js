@@ -1080,11 +1080,8 @@ api.post('/orders', authMiddleware, async (req, res) => {
     res.json(order);
 
   } catch (error) {
-
     console.error('Create order error:', error);
-
-    res.status(500).json({ error: 'Gagal membuat pesanan' });
-
+    res.status(500).json({ error: 'Gagal membuat pesanan: ' + String(error.message || error) });
   }
 
 });
