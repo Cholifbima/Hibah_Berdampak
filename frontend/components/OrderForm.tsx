@@ -12,7 +12,7 @@ import Link from "next/link";
 
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
-const WA_NUMBER = "628157799036";
+const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "628157799036";
 const ORDER_COUNTER_KEY = "topassist_order_counter";
 
 function getNextOrderNumber(): string {
@@ -119,9 +119,11 @@ export default function OrderForm() {
 
   function moveMapToLocation(distName: string, regName: string, provName: string, villName: string = "") {
     const parts = [villName, distName, regName, provName].filter(Boolean);
-    if (parts.length < 3) return;
+    if (parts.length === 0) return;
+    
+    // Construct query that nominatim understands better
     const q = parts.join(", ");
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1`)
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=id&limit=1&email=topassist@example.com`)
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
@@ -453,6 +455,9 @@ export default function OrderForm() {
     lines.push(`*Nama:* ${nama}`);
     lines.push(`*Telepon:* ${telepon}`);
     lines.push(`*Alamat:* ${fullAlamat}`);
+    if (lat && lng) {
+      lines.push(`*Google Maps:* https://www.google.com/maps?q=${lat},${lng}`);
+    }
     if (catatan.trim()) lines.push(`*Catatan:* ${catatan}`);
     lines.push("");
     lines.push(sep);
@@ -681,6 +686,7 @@ export default function OrderForm() {
                     if (sel) {
                       setSelectedProv({id: sel.id, name: sel.name});
                       setProvinsi(""); // clear manual provinsi if dropdown used
+                      moveMapToLocation("", "", sel.name);
                     } else {
                       setSelectedProv({id: "", name: ""});
                       setProvinsi(e.target.value); // fallback to manual edit
@@ -700,8 +706,12 @@ export default function OrderForm() {
                   value={selectedReg.id}
                   onChange={(e) => {
                     const sel = regencies.find(r => r.id === e.target.value);
-                    if (sel) setSelectedReg({id: sel.id, name: sel.name});
-                    else setSelectedReg({id: "", name: ""});
+                    if (sel) {
+                      setSelectedReg({id: sel.id, name: sel.name});
+                      moveMapToLocation("", sel.name, selectedProv.name);
+                    } else {
+                      setSelectedReg({id: "", name: ""});
+                    }
                   }}
                   className={inputClass}
                   disabled={!selectedProv.id}

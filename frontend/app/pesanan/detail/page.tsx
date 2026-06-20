@@ -13,6 +13,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
+const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "6282243293881";
+
 interface OrderDetail {
   id_detail: number;
   id_product: number;
@@ -291,7 +293,7 @@ function OrderDetailInner() {
             </p>
           </div>
           <a
-            href={`https://wa.me/6282243293881?text=${encodeURIComponent(`Halo TopAssist! Tolong aktifkan notifikasi otomatis untuk pesanan saya dengan kode: *${order.kode_pesanan}*. Terima kasih!`)}`}
+            href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo TopAssist! Tolong aktifkan notifikasi otomatis untuk pesanan saya dengan kode: *${order.kode_pesanan}*. Terima kasih!`)}`}
             target="_blank"
             className="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-green-600 shadow-sm hover:bg-green-50 transition-colors"
           >
@@ -445,7 +447,7 @@ function OrderDetailInner() {
               {order.status_pesanan === "PENDING" && (
                 <div className="mt-4 flex flex-col sm:flex-row gap-3">
                   <a
-                    href={`https://wa.me/6282243293881?text=${encodeURIComponent(`Halo Admin, saya ingin meminta nomor rekening untuk pembayaran pesanan ${order.kode_pesanan}.`)}`}
+                    href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo Admin, saya ingin meminta nomor rekening untuk pembayaran pesanan ${order.kode_pesanan}.`)}`}
                     target="_blank"
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#163f73] shadow-sm hover:bg-gray-50 border border-blue-200 transition-colors"
                   >
@@ -482,7 +484,7 @@ function OrderDetailInner() {
           {order.status_pesanan === "DIKIRIM" && (
             <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
               <Link
-                href={`https://wa.me/6282243293881?text=${encodeURIComponent(`Halo Admin, saya ingin mengajukan keluhan untuk pesanan ${order.kode_pesanan}.`)}`}
+                href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo Admin, saya ingin mengajukan keluhan untuk pesanan ${order.kode_pesanan}.`)}`}
                 target="_blank"
                 className="flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-5 py-2.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition-colors"
               >

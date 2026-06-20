@@ -32,6 +32,8 @@ interface Order {
   tanggal_pesanan: string;
   nomor_resi?: string | null;
   jenis_pengiriman?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   details: OrderItem[];
   user: { nama_lengkap: string; username: string; email: string };
 }
@@ -199,7 +201,20 @@ function OrderCard({ order, token, onUpdate, onDelete }: { order: Order; token: 
           <div className="grid grid-cols-2 gap-2 text-[12px]">
             <div><span className="text-gray-500">Tanggal:</span> <span className="font-medium text-gray-800">{new Date(order.tanggal_pesanan).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span></div>
             <div><span className="text-gray-500">Telepon:</span> <span className="font-medium text-gray-800">{order.no_telepon || "-"}</span></div>
-            <div className="col-span-2"><span className="text-gray-500">Alamat:</span> <span className="font-medium text-gray-800">{order.alamat_pengiriman}</span></div>
+            <div className="col-span-2">
+              <span className="text-gray-500">Alamat:</span> 
+              <span className="font-medium text-gray-800 ml-1">{order.alamat_pengiriman}</span>
+              {order.lat && order.lng && (
+                <a 
+                  href={`https://www.google.com/maps?q=${order.lat},${order.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline bg-blue-50 px-2 py-0.5 rounded border border-blue-100"
+                >
+                  📍 Buka di Maps
+                </a>
+              )}
+            </div>
             {order.catatan && <div className="col-span-2"><span className="text-gray-500">Catatan:</span> <span className="font-medium text-gray-800">{order.catatan}</span></div>}
             {order.nomor_resi && (
               <div className="col-span-2 mt-1 rounded bg-blue-50 p-2 border border-blue-100">
