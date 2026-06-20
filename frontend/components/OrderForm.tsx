@@ -552,6 +552,7 @@ export default function OrderForm() {
       } else {
         const errBody = await res.text();
         console.error(`❌ Order API error ${res.status}:`, errBody);
+        alert(`Gagal menyimpan pesanan (Status ${res.status}): ${errBody}`);
         
         // Jika masih 401 setelah authFetch (refresh gagal), coba sekali lagi dengan token terbaru
         if (res.status === 401) {
@@ -579,6 +580,7 @@ export default function OrderForm() {
       }
     } catch (err) {
       console.error("❌ Network/exception error saat submit order:", err);
+      alert("Terjadi kesalahan jaringan saat menyimpan pesanan: " + String(err));
     }
 
     // Save address to profile for future orders
