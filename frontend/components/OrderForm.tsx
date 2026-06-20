@@ -527,7 +527,7 @@ export default function OrderForm() {
       })),
     };
 
-    let orderSaved = false;
+    let orderSaved: any = null;
 
     try {
       // Ambil token terbaru dari localStorage (mungkin sudah di-refresh oleh authFetch sebelumnya)

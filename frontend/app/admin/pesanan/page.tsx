@@ -34,6 +34,7 @@ interface Order {
   jenis_pengiriman?: string | null;
   lat?: number | null;
   lng?: number | null;
+  bukti_pembayaran_url?: string | null;
   details: OrderItem[];
   user: { nama_lengkap: string; username: string; email: string };
 }
