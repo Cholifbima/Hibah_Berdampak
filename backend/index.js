@@ -1038,19 +1038,22 @@ api.post('/orders', authMiddleware, async (req, res) => {
     const dd = String(todayDate.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}${mm}${dd}`;
 
-    const startOfDay = new Date(todayDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(todayDate.setHours(23, 59, 59, 999));
-
-    const todayOrderCount = await prisma.order.count({
+    // Fix: Gunakan pencarian pesanan terakhir di hari ini untuk mencegah error Unique Constraint jika ada pesanan yang dihapus
+    const lastOrder = await prisma.order.findFirst({
       where: {
-        tanggal_pesanan: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      }
+        kode_pesanan: { startsWith: `ORD-${dateStr}-` }
+      },
+      orderBy: { kode_pesanan: 'desc' }
     });
 
-    const sequence = String(todayOrderCount + 1).padStart(4, '0');
+    let nextSeq = 1;
+    if (lastOrder && lastOrder.kode_pesanan) {
+      const lastSeqStr = lastOrder.kode_pesanan.split('-').pop();
+      const lastSeqNum = parseInt(lastSeqStr, 10);
+      if (!isNaN(lastSeqNum)) nextSeq = lastSeqNum + 1;
+    }
+
+    const sequence = String(nextSeq).padStart(4, '0');
     const uniqueKode = `ORD-${dateStr}-${sequence}`;
 
     const order = await prisma.order.create({
