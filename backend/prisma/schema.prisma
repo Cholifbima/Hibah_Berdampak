@@ -28,6 +28,7 @@ model User {
   cart_items   CartItem[]
   notifications Notification[]
   push_subscriptions PushSubscription[]
+  reviews      Review[]
 }
 
 model Product {
@@ -137,4 +138,15 @@ model PushSubscription {
   created_at   DateTime @default(now())
 
   @@unique([endpoint(length: 255)])
+}
+
+model Review {
+  id_review  Int      @id @default(autoincrement())
+  id_user    Int
+  user       User     @relation(fields: [id_user], references: [id_user], onDelete: Cascade)
+  rating     Int      @default(5)
+  comment    String   @db.Text
+  image_url  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }

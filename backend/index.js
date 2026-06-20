@@ -2269,6 +2269,123 @@ api.post('/ongkir/cost', async (req, res) => {
   }
 });
 
+// --- REVIEWS ---
+
+// GET /reviews - Public endpoint to fetch all reviews
+api.get('/reviews', async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      include: {
+        user: { select: { nama_lengkap: true, avatar_url: true } }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json(reviews);
+  } catch (err) {
+    console.error('Fetch reviews error:', err);
+    res.status(500).json({ error: 'Gagal mengambil ulasan' });
+  }
+});
+
+// POST /reviews - User creates a new review
+api.post('/reviews', authMiddleware, async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    if (!rating || !comment) {
+      return res.status(400).json({ error: 'Rating dan komentar wajib diisi' });
+    }
+    const review = await prisma.review.create({
+      data: {
+        id_user: req.userId,
+        rating: parseInt(rating, 10),
+        comment
+      },
+      include: {
+        user: { select: { nama_lengkap: true, avatar_url: true } }
+      }
+    });
+    res.json(review);
+  } catch (err) {
+    console.error('Create review error:', err);
+    res.status(500).json({ error: 'Gagal menambahkan ulasan' });
+  }
+});
+
+// POST /reviews/:id/image - Upload an image for a review
+api.post('/reviews/:id/image', authMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Gambar tidak ditemukan' });
+    
+    const reviewId = parseInt(req.params.id, 10);
+    const existing = await prisma.review.findUnique({ where: { id_review: reviewId } });
+    if (!existing) return res.status(404).json({ error: 'Ulasan tidak ditemukan' });
+    
+    // Validasi izin: harus pemilik ulasan atau ADMIN
+    if (existing.id_user !== req.userId && req.userRole !== 'ADMIN' && req.userRole !== 'OWNER') {
+      return res.status(403).json({ error: 'Tidak memiliki izin mengubah ulasan ini' });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const updated = await prisma.review.update({
+      where: { id_review: reviewId },
+      data: { image_url: imageUrl },
+      include: { user: { select: { nama_lengkap: true, avatar_url: true } } }
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error('Upload review image error:', err);
+    res.status(500).json({ error: 'Gagal mengunggah gambar' });
+  }
+});
+
+// PUT /reviews/:id - Admin/Owner or User update a review
+api.put('/reviews/:id', authMiddleware, async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const reviewId = parseInt(req.params.id, 10);
+    
+    const existing = await prisma.review.findUnique({ where: { id_review: reviewId } });
+    if (!existing) return res.status(404).json({ error: 'Ulasan tidak ditemukan' });
+    
+    if (existing.id_user !== req.userId && req.userRole !== 'ADMIN' && req.userRole !== 'OWNER') {
+      return res.status(403).json({ error: 'Tidak memiliki izin mengubah ulasan ini' });
+    }
+
+    const updated = await prisma.review.update({
+      where: { id_review: reviewId },
+      data: { 
+        rating: rating ? parseInt(rating, 10) : existing.rating,
+        comment: comment || existing.comment
+      },
+      include: { user: { select: { nama_lengkap: true, avatar_url: true } } }
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error('Update review error:', err);
+    res.status(500).json({ error: 'Gagal mengubah ulasan' });
+  }
+});
+
+// DELETE /reviews/:id - Admin/Owner or User delete a review
+api.delete('/reviews/:id', authMiddleware, async (req, res) => {
+  try {
+    const reviewId = parseInt(req.params.id, 10);
+    
+    const existing = await prisma.review.findUnique({ where: { id_review: reviewId } });
+    if (!existing) return res.status(404).json({ error: 'Ulasan tidak ditemukan' });
+    
+    if (existing.id_user !== req.userId && req.userRole !== 'ADMIN' && req.userRole !== 'OWNER') {
+      return res.status(403).json({ error: 'Tidak memiliki izin menghapus ulasan ini' });
+    }
+
+    await prisma.review.delete({ where: { id_review: reviewId } });
+    res.json({ success: true, message: 'Ulasan berhasil dihapus' });
+  } catch (err) {
+    console.error('Delete review error:', err);
+    res.status(500).json({ error: 'Gagal menghapus ulasan' });
+  }
+});
+
 // Health check for Passenger
 app.get('/', (req, res) => {
   res.json({ ok: true, service: 'topassist-api', env: NODE_ENV });

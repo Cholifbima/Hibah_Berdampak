@@ -22,9 +22,9 @@ import {
   Database,
   Activity,
   HardDrive,
-  RefreshCw,
   CheckCircle,
   BarChart3,
+  MessageCircle,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -94,6 +94,7 @@ const NAV_ITEMS = [
   { href: "/admin/produk", icon: Package, label: "Produk" },
   { href: "/admin/pesanan", icon: ShoppingCart, label: "Pesanan" },
   { href: "/admin/users", icon: Users, label: "Pengguna" },
+  { href: "/admin/reviews", icon: MessageCircle, label: "Ulasan" },
 ];
 
 function SidebarMenu({

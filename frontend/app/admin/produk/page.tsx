@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { apiUrl, formatRupiah, authFetch } from "@/lib/api";
 import {
   Menu, X, LayoutDashboard, Package, ShoppingCart, Users, LogOut,
-  ShoppingBag, Search, Plus, Pencil, Trash2, Loader2,
+  ShoppingBag, Search, Plus, Pencil, Trash2, Loader2, MessageCircle,
   ChevronDown, ChevronUp, Save, AlertTriangle, ImagePlus, ImageOff, Filter
 } from "lucide-react";
 
@@ -37,6 +37,7 @@ const NAV_ITEMS = [
   { href: "/admin/produk", icon: Package, label: "Produk" },
   { href: "/admin/pesanan", icon: ShoppingCart, label: "Pesanan" },
   { href: "/admin/users", icon: Users, label: "Pengguna" },
+  { href: "/admin/reviews", icon: MessageCircle, label: "Ulasan" },
 ];
 
 function AdminHeader({ title, onMenuToggle }: { title: string; onMenuToggle: () => void }) {

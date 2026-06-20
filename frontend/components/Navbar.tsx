@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/", label: "Beranda" },
   { href: "/toko", label: "Toko" },
   { href: "/konsultan", label: "Konsultan AI" },
+  { href: "/reviews", label: "Testimoni" },
   { href: "/#kontak", label: "Kontak" },
 ];
 
